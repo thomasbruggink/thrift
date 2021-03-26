@@ -22,6 +22,7 @@
 *.hi
 *~
 tags
+bazel-*
 
 .*project
 .classpath
@@ -75,17 +76,7 @@ project.lock.json
 /compiler/cpp/Debug
 /compiler/cpp/Release
 /compiler/cpp/src/thrift/libparse.a
-/compiler/cpp/src/thrift/thriftl.cc
-/compiler/cpp/src/thrift/thrifty.cc
-/compiler/cpp/src/thrift/thrifty.hh
-/compiler/cpp/src/thrift/windows/version.h
-/compiler/cpp/thrift
-/compiler/cpp/thriftl.cc
-/compiler/cpp/thrifty.cc
 /compiler/cpp/lex.yythriftl.cc
-/compiler/cpp/thrifty.h
-/compiler/cpp/thrifty.hh
-/compiler/cpp/src/thrift/version.h
 /config.*
 /configure
 /configure.lineno
