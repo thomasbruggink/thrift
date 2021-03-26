@@ -34,8 +34,8 @@
 /* Undocumented macros, especially those whose name start with YY_,
    are private implementation details.  Do not rely on them.  */
 
-#ifndef YY_YY_THRIFTY_HH_INCLUDED
-# define YY_YY_THRIFTY_HH_INCLUDED
+#ifndef YY_YY_HOME_THOMAS_SOURCES_THRIFT_COMPILER_CPP_BUILD_THRIFT_THRIFTY_HH_INCLUDED
+# define YY_YY_HOME_THOMAS_SOURCES_THRIFT_COMPILER_CPP_BUILD_THRIFT_THRIFTY_HH_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -44,11 +44,11 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 1 "thrifty.yy"
+#line 1 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
 
 #include "thrift/parse/t_program.h"
 
-#line 52 "thrifty.hh"
+#line 52 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.hh"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -97,53 +97,12 @@ extern int yydebug;
     tok_reference = 297
   };
 #endif
-/* Tokens.  */
-#define tok_identifier 258
-#define tok_literal 259
-#define tok_doctext 260
-#define tok_int_constant 261
-#define tok_dub_constant 262
-#define tok_include 263
-#define tok_namespace 264
-#define tok_cpp_include 265
-#define tok_cpp_type 266
-#define tok_xsd_all 267
-#define tok_xsd_optional 268
-#define tok_xsd_nillable 269
-#define tok_xsd_attrs 270
-#define tok_void 271
-#define tok_bool 272
-#define tok_string 273
-#define tok_binary 274
-#define tok_slist 275
-#define tok_senum 276
-#define tok_i8 277
-#define tok_i16 278
-#define tok_i32 279
-#define tok_i64 280
-#define tok_double 281
-#define tok_map 282
-#define tok_list 283
-#define tok_set 284
-#define tok_oneway 285
-#define tok_typedef 286
-#define tok_struct 287
-#define tok_xception 288
-#define tok_throws 289
-#define tok_extends 290
-#define tok_service 291
-#define tok_enum 292
-#define tok_const 293
-#define tok_required 294
-#define tok_optional 295
-#define tok_union 296
-#define tok_reference 297
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 82 "thrifty.yy"
+#line 82 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
 
   char*          id;
   int64_t        iconst;
@@ -166,7 +125,7 @@ union YYSTYPE
   t_annotation*  tannot;
   t_field_id     tfieldid;
 
-#line 170 "thrifty.hh"
+#line 129 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.hh"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -179,4 +138,4 @@ extern YYSTYPE yylval;
 
 int yyparse (void);
 
-#endif /* !YY_YY_THRIFTY_HH_INCLUDED  */
+#endif /* !YY_YY_HOME_THOMAS_SOURCES_THRIFT_COMPILER_CPP_BUILD_THRIFT_THRIFTY_HH_INCLUDED  */

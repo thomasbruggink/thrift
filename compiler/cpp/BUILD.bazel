@@ -42,6 +42,10 @@ cc_binary(
             "src/thrift/logging.cc",
         ],
     ),
+    linkopts = select({
+        ":windows": ["-DEFAULTLIB:Ole32.lib"],
+        "//conditions:default": [],
+    }),
     deps = select({
         ":windows": [":thrift_headers_win"],
         "//conditions:default": [":thrift_headers"],

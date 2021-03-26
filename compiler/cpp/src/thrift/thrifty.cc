@@ -66,7 +66,7 @@
 
 
 /* First part of user prologue.  */
-#line 4 "thrifty.yy"
+#line 4 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -140,7 +140,7 @@ const int struct_is_struct = 0;
 const int struct_is_union = 1;
 
 
-#line 144 "thrifty.cc"
+#line 144 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -173,8 +173,8 @@ const int struct_is_union = 1;
 
 /* Use api.header.include to #include this header
    instead of duplicating it here.  */
-#ifndef YY_YY_THRIFTY_HH_INCLUDED
-# define YY_YY_THRIFTY_HH_INCLUDED
+#ifndef YY_YY_HOME_THOMAS_SOURCES_THRIFT_COMPILER_CPP_BUILD_THRIFT_THRIFTY_HH_INCLUDED
+# define YY_YY_HOME_THOMAS_SOURCES_THRIFT_COMPILER_CPP_BUILD_THRIFT_THRIFTY_HH_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -183,11 +183,11 @@ const int struct_is_union = 1;
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 1 "thrifty.yy"
+#line 1 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
 
 #include "thrift/parse/t_program.h"
 
-#line 191 "thrifty.cc"
+#line 191 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -236,53 +236,12 @@ extern int yydebug;
     tok_reference = 297
   };
 #endif
-/* Tokens.  */
-#define tok_identifier 258
-#define tok_literal 259
-#define tok_doctext 260
-#define tok_int_constant 261
-#define tok_dub_constant 262
-#define tok_include 263
-#define tok_namespace 264
-#define tok_cpp_include 265
-#define tok_cpp_type 266
-#define tok_xsd_all 267
-#define tok_xsd_optional 268
-#define tok_xsd_nillable 269
-#define tok_xsd_attrs 270
-#define tok_void 271
-#define tok_bool 272
-#define tok_string 273
-#define tok_binary 274
-#define tok_slist 275
-#define tok_senum 276
-#define tok_i8 277
-#define tok_i16 278
-#define tok_i32 279
-#define tok_i64 280
-#define tok_double 281
-#define tok_map 282
-#define tok_list 283
-#define tok_set 284
-#define tok_oneway 285
-#define tok_typedef 286
-#define tok_struct 287
-#define tok_xception 288
-#define tok_throws 289
-#define tok_extends 290
-#define tok_service 291
-#define tok_enum 292
-#define tok_const 293
-#define tok_required 294
-#define tok_optional 295
-#define tok_union 296
-#define tok_reference 297
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 82 "thrifty.yy"
+#line 82 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
 
   char*          id;
   int64_t        iconst;
@@ -305,7 +264,7 @@ union YYSTYPE
   t_annotation*  tannot;
   t_field_id     tfieldid;
 
-#line 309 "thrifty.cc"
+#line 268 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -318,7 +277,7 @@ extern YYSTYPE yylval;
 
 int yyparse (void);
 
-#endif /* !YY_YY_THRIFTY_HH_INCLUDED  */
+#endif /* !YY_YY_HOME_THOMAS_SOURCES_THRIFT_COMPILER_CPP_BUILD_THRIFT_THRIFTY_HH_INCLUDED  */
 
 
 
@@ -1630,84 +1589,84 @@ yyreduce:
   switch (yyn)
     {
   case 2:
-#line 251 "thrifty.yy"
+#line 251 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Program -> Headers DefinitionList");
-      if((g_program_doctext_candidate != NULL) && (g_program_doctext_status != ALREADY_PROCESSED))
+      if((g_program_doctext_candidate != nullptr) && (g_program_doctext_status != ALREADY_PROCESSED))
       {
         g_program->set_doc(g_program_doctext_candidate);
         g_program_doctext_status = ALREADY_PROCESSED;
       }
       clear_doctext();
     }
-#line 1644 "thrifty.cc"
+#line 1603 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 3:
-#line 262 "thrifty.yy"
+#line 262 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       if (g_parse_mode == PROGRAM) {
         (yyval.dtext) = g_doctext;
-        g_doctext = NULL;
+        g_doctext = nullptr;
       } else {
-        (yyval.dtext) = NULL;
+        (yyval.dtext) = nullptr;
       }
     }
-#line 1657 "thrifty.cc"
+#line 1616 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 4:
-#line 273 "thrifty.yy"
+#line 273 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       if (g_parse_mode == PROGRAM) {
         clear_doctext();
       }
     }
-#line 1667 "thrifty.cc"
+#line 1626 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 5:
-#line 283 "thrifty.yy"
+#line 283 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("HeaderList -> HeaderList Header");
     }
-#line 1675 "thrifty.cc"
+#line 1634 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 6:
-#line 287 "thrifty.yy"
+#line 287 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("HeaderList -> ");
     }
-#line 1683 "thrifty.cc"
+#line 1642 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 7:
-#line 293 "thrifty.yy"
+#line 293 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Header -> Include");
     }
-#line 1691 "thrifty.cc"
+#line 1650 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 8:
-#line 297 "thrifty.yy"
+#line 297 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Header -> tok_namespace tok_identifier tok_identifier");
       declare_valid_program_doctext();
       if (g_parse_mode == PROGRAM) {
         g_program->set_namespace((yyvsp[-2].id), (yyvsp[-1].id));
       }
-      if ((yyvsp[0].ttype) != NULL) {
+      if ((yyvsp[0].ttype) != nullptr) {
         g_program->set_namespace_annotations((yyvsp[-2].id), (yyvsp[0].ttype)->annotations_);
         delete (yyvsp[0].ttype);
       }
     }
-#line 1707 "thrifty.cc"
+#line 1666 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 9:
-#line 309 "thrifty.yy"
+#line 309 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Header -> tok_namespace * tok_identifier");
       declare_valid_program_doctext();
@@ -1715,11 +1674,11 @@ yyreduce:
         g_program->set_namespace("*", (yyvsp[0].id));
       }
     }
-#line 1719 "thrifty.cc"
+#line 1678 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 10:
-#line 317 "thrifty.yy"
+#line 317 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Header -> tok_cpp_include tok_literal");
       declare_valid_program_doctext();
@@ -1727,11 +1686,11 @@ yyreduce:
         g_program->add_cpp_include((yyvsp[0].id));
       }
     }
-#line 1731 "thrifty.cc"
+#line 1690 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 11:
-#line 327 "thrifty.yy"
+#line 327 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Include -> tok_include tok_literal");
       declare_valid_program_doctext();
@@ -1742,30 +1701,30 @@ yyreduce:
         }
       }
     }
-#line 1746 "thrifty.cc"
+#line 1705 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 12:
-#line 340 "thrifty.yy"
+#line 340 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("DefinitionList -> DefinitionList Definition");
-      if ((yyvsp[-1].dtext) != NULL && (yyvsp[0].tdoc) != NULL) {
+      if ((yyvsp[-1].dtext) != nullptr && (yyvsp[0].tdoc) != nullptr) {
         (yyvsp[0].tdoc)->set_doc((yyvsp[-1].dtext));
       }
     }
-#line 1757 "thrifty.cc"
+#line 1716 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 13:
-#line 347 "thrifty.yy"
+#line 347 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("DefinitionList -> ");
     }
-#line 1765 "thrifty.cc"
+#line 1724 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 14:
-#line 353 "thrifty.yy"
+#line 353 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Definition -> Const");
       if (g_parse_mode == PROGRAM) {
@@ -1773,16 +1732,16 @@ yyreduce:
       }
       (yyval.tdoc) = (yyvsp[0].tconst);
     }
-#line 1777 "thrifty.cc"
+#line 1736 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 15:
-#line 361 "thrifty.yy"
+#line 361 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Definition -> TypeDefinition");
       if (g_parse_mode == PROGRAM) {
         g_scope->add_type((yyvsp[0].ttype)->get_name(), (yyvsp[0].ttype));
-        if (g_parent_scope != NULL) {
+        if (g_parent_scope != nullptr) {
           g_parent_scope->add_type(g_parent_prefix + (yyvsp[0].ttype)->get_name(), (yyvsp[0].ttype));
         }
         if (! g_program->is_unique_typename((yyvsp[0].ttype))) {
@@ -1792,16 +1751,16 @@ yyreduce:
       }
       (yyval.tdoc) = (yyvsp[0].ttype);
     }
-#line 1796 "thrifty.cc"
+#line 1755 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 16:
-#line 376 "thrifty.yy"
+#line 376 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Definition -> Service");
       if (g_parse_mode == PROGRAM) {
         g_scope->add_service((yyvsp[0].tservice)->get_name(), (yyvsp[0].tservice));
-        if (g_parent_scope != NULL) {
+        if (g_parent_scope != nullptr) {
           g_parent_scope->add_service(g_parent_prefix + (yyvsp[0].tservice)->get_name(), (yyvsp[0].tservice));
         }
         g_program->add_service((yyvsp[0].tservice));
@@ -1812,105 +1771,105 @@ yyreduce:
       }
       (yyval.tdoc) = (yyvsp[0].tservice);
     }
-#line 1816 "thrifty.cc"
+#line 1775 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 17:
-#line 394 "thrifty.yy"
+#line 394 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeDefinition -> Typedef");
       if (g_parse_mode == PROGRAM) {
         g_program->add_typedef((yyvsp[0].ttypedef));
       }
     }
-#line 1827 "thrifty.cc"
+#line 1786 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 18:
-#line 401 "thrifty.yy"
+#line 401 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeDefinition -> Enum");
       if (g_parse_mode == PROGRAM) {
         g_program->add_enum((yyvsp[0].tenum));
       }
     }
-#line 1838 "thrifty.cc"
+#line 1797 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 19:
-#line 408 "thrifty.yy"
+#line 408 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeDefinition -> Senum");
       if (g_parse_mode == PROGRAM) {
         g_program->add_typedef((yyvsp[0].ttypedef));
       }
     }
-#line 1849 "thrifty.cc"
+#line 1808 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 20:
-#line 415 "thrifty.yy"
+#line 415 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeDefinition -> Struct");
       if (g_parse_mode == PROGRAM) {
         g_program->add_struct((yyvsp[0].tstruct));
       }
     }
-#line 1860 "thrifty.cc"
+#line 1819 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 21:
-#line 422 "thrifty.yy"
+#line 422 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeDefinition -> Xception");
       if (g_parse_mode == PROGRAM) {
         g_program->add_xception((yyvsp[0].tstruct));
       }
     }
-#line 1871 "thrifty.cc"
+#line 1830 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 22:
-#line 431 "thrifty.yy"
+#line 431 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {}
-#line 1877 "thrifty.cc"
+#line 1836 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 23:
-#line 433 "thrifty.yy"
+#line 433 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {}
-#line 1883 "thrifty.cc"
+#line 1842 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 24:
-#line 435 "thrifty.yy"
+#line 435 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {}
-#line 1889 "thrifty.cc"
+#line 1848 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 25:
-#line 439 "thrifty.yy"
+#line 439 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeDef -> tok_typedef FieldType tok_identifier");
       validate_simple_identifier( (yyvsp[-2].id));
       t_typedef *td = new t_typedef(g_program, (yyvsp[-3].ttype), (yyvsp[-2].id));
       (yyval.ttypedef) = td;
-      if ((yyvsp[-1].ttype) != NULL) {
+      if ((yyvsp[-1].ttype) != nullptr) {
         (yyval.ttypedef)->annotations_ = (yyvsp[-1].ttype)->annotations_;
         delete (yyvsp[-1].ttype);
       }
     }
-#line 1904 "thrifty.cc"
+#line 1863 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 26:
-#line 452 "thrifty.yy"
+#line 452 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Enum -> tok_enum tok_identifier { EnumDefList }");
       (yyval.tenum) = (yyvsp[-2].tenum);
       validate_simple_identifier( (yyvsp[-4].id));
       (yyval.tenum)->set_name((yyvsp[-4].id));
-      if ((yyvsp[0].ttype) != NULL) {
+      if ((yyvsp[0].ttype) != nullptr) {
         (yyval.tenum)->annotations_ = (yyvsp[0].ttype)->annotations_;
         delete (yyvsp[0].ttype);
       }
@@ -1924,53 +1883,53 @@ yyreduce:
           t_const_value* const_val = new t_const_value((*c_iter)->get_value());
           const_val->set_enum((yyval.tenum));
           g_scope->add_constant(const_name, new t_const(g_type_i32, (*c_iter)->get_name(), const_val));
-          if (g_parent_scope != NULL) {
+          if (g_parent_scope != nullptr) {
             g_parent_scope->add_constant(g_parent_prefix + const_name, new t_const(g_type_i32, (*c_iter)->get_name(), const_val));
           }
         }
       }
     }
-#line 1934 "thrifty.cc"
+#line 1893 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 27:
-#line 480 "thrifty.yy"
+#line 480 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("EnumDefList -> EnumDefList EnumDef");
       (yyval.tenum) = (yyvsp[-1].tenum);
       (yyval.tenum)->append((yyvsp[0].tenumv));
     }
-#line 1944 "thrifty.cc"
+#line 1903 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 28:
-#line 486 "thrifty.yy"
+#line 486 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("EnumDefList -> ");
       (yyval.tenum) = new t_enum(g_program);
       y_enum_val = -1;
     }
-#line 1954 "thrifty.cc"
+#line 1913 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 29:
-#line 494 "thrifty.yy"
+#line 494 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("EnumDef -> EnumValue");
       (yyval.tenumv) = (yyvsp[-2].tenumv);
-      if ((yyvsp[-3].dtext) != NULL) {
+      if ((yyvsp[-3].dtext) != nullptr) {
         (yyval.tenumv)->set_doc((yyvsp[-3].dtext));
       }
-	  if ((yyvsp[-1].ttype) != NULL) {
+	  if ((yyvsp[-1].ttype) != nullptr) {
         (yyval.tenumv)->annotations_ = (yyvsp[-1].ttype)->annotations_;
         delete (yyvsp[-1].ttype);
       }
     }
-#line 1970 "thrifty.cc"
+#line 1929 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 30:
-#line 508 "thrifty.yy"
+#line 508 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("EnumValue -> tok_identifier = tok_int_constant");
       if ((yyvsp[0].iconst) < INT32_MIN || (yyvsp[0].iconst) > INT32_MAX) {
@@ -1984,11 +1943,11 @@ yyreduce:
       y_enum_val = static_cast<int32_t>((yyvsp[0].iconst));
       (yyval.tenumv) = new t_enum_value((yyvsp[-2].id), y_enum_val);
     }
-#line 1988 "thrifty.cc"
+#line 1947 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 31:
-#line 523 "thrifty.yy"
+#line 523 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("EnumValue -> tok_identifier");
       validate_simple_identifier( (yyvsp[0].id));
@@ -1998,54 +1957,54 @@ yyreduce:
       ++y_enum_val;
       (yyval.tenumv) = new t_enum_value((yyvsp[0].id), y_enum_val);
     }
-#line 2002 "thrifty.cc"
+#line 1961 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 32:
-#line 535 "thrifty.yy"
+#line 535 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Senum -> tok_senum tok_identifier { SenumDefList }");
       validate_simple_identifier( (yyvsp[-4].id));
       (yyval.ttypedef) = new t_typedef(g_program, (yyvsp[-2].tbase), (yyvsp[-4].id));
-      if ((yyvsp[0].ttype) != NULL) {
+      if ((yyvsp[0].ttype) != nullptr) {
         (yyval.ttypedef)->annotations_ = (yyvsp[0].ttype)->annotations_;
         delete (yyvsp[0].ttype);
       }
     }
-#line 2016 "thrifty.cc"
+#line 1975 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 33:
-#line 547 "thrifty.yy"
+#line 547 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("SenumDefList -> SenumDefList SenumDef");
       (yyval.tbase) = (yyvsp[-1].tbase);
       (yyval.tbase)->add_string_enum_val((yyvsp[0].id));
     }
-#line 2026 "thrifty.cc"
+#line 1985 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 34:
-#line 553 "thrifty.yy"
+#line 553 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("SenumDefList -> ");
       (yyval.tbase) = new t_base_type("string", t_base_type::TYPE_STRING);
       (yyval.tbase)->set_string_enum(true);
     }
-#line 2036 "thrifty.cc"
+#line 1995 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 35:
-#line 561 "thrifty.yy"
+#line 561 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("SenumDef -> tok_literal");
       (yyval.id) = (yyvsp[-1].id);
     }
-#line 2045 "thrifty.cc"
+#line 2004 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 36:
-#line 568 "thrifty.yy"
+#line 568 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Const -> tok_const FieldType tok_identifier = ConstValue");
       if (g_parse_mode == PROGRAM) {
@@ -2055,18 +2014,18 @@ yyreduce:
         validate_const_type((yyval.tconst));
 
         g_scope->add_constant((yyvsp[-3].id), (yyval.tconst));
-        if (g_parent_scope != NULL) {
+        if (g_parent_scope != nullptr) {
           g_parent_scope->add_constant(g_parent_prefix + (yyvsp[-3].id), (yyval.tconst));
         }
       } else {
-        (yyval.tconst) = NULL;
+        (yyval.tconst) = nullptr;
       }
     }
-#line 2066 "thrifty.cc"
+#line 2025 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 37:
-#line 587 "thrifty.yy"
+#line 587 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstValue => tok_int_constant");
       (yyval.tconstv) = new t_const_value();
@@ -2075,132 +2034,132 @@ yyreduce:
         pwarning(1, "64-bit constant \"%" PRIi64"\" may not work in all languages.\n", (yyvsp[0].iconst));
       }
     }
-#line 2079 "thrifty.cc"
+#line 2038 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 38:
-#line 596 "thrifty.yy"
+#line 596 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstValue => tok_dub_constant");
       (yyval.tconstv) = new t_const_value();
       (yyval.tconstv)->set_double((yyvsp[0].dconst));
     }
-#line 2089 "thrifty.cc"
+#line 2048 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 39:
-#line 602 "thrifty.yy"
+#line 602 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstValue => tok_literal");
       (yyval.tconstv) = new t_const_value((yyvsp[0].id));
     }
-#line 2098 "thrifty.cc"
+#line 2057 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 40:
-#line 607 "thrifty.yy"
+#line 607 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstValue => tok_identifier");
       (yyval.tconstv) = new t_const_value();
       (yyval.tconstv)->set_identifier((yyvsp[0].id));
     }
-#line 2108 "thrifty.cc"
+#line 2067 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 41:
-#line 613 "thrifty.yy"
+#line 613 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstValue => ConstList");
       (yyval.tconstv) = (yyvsp[0].tconstv);
     }
-#line 2117 "thrifty.cc"
+#line 2076 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 42:
-#line 618 "thrifty.yy"
+#line 618 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstValue => ConstMap");
       (yyval.tconstv) = (yyvsp[0].tconstv);
     }
-#line 2126 "thrifty.cc"
+#line 2085 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 43:
-#line 625 "thrifty.yy"
+#line 625 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstList => [ ConstListContents ]");
       (yyval.tconstv) = (yyvsp[-1].tconstv);
     }
-#line 2135 "thrifty.cc"
+#line 2094 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 44:
-#line 632 "thrifty.yy"
+#line 632 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstListContents => ConstListContents ConstValue CommaOrSemicolonOptional");
       (yyval.tconstv) = (yyvsp[-2].tconstv);
       (yyval.tconstv)->add_list((yyvsp[-1].tconstv));
     }
-#line 2145 "thrifty.cc"
+#line 2104 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 45:
-#line 638 "thrifty.yy"
+#line 638 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstListContents =>");
       (yyval.tconstv) = new t_const_value();
       (yyval.tconstv)->set_list();
     }
-#line 2155 "thrifty.cc"
+#line 2114 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 46:
-#line 646 "thrifty.yy"
+#line 646 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstMap => { ConstMapContents }");
       (yyval.tconstv) = (yyvsp[-1].tconstv);
     }
-#line 2164 "thrifty.cc"
+#line 2123 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 47:
-#line 653 "thrifty.yy"
+#line 653 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstMapContents => ConstMapContents ConstValue CommaOrSemicolonOptional");
       (yyval.tconstv) = (yyvsp[-4].tconstv);
       (yyval.tconstv)->add_map((yyvsp[-3].tconstv), (yyvsp[-1].tconstv));
     }
-#line 2174 "thrifty.cc"
+#line 2133 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 48:
-#line 659 "thrifty.yy"
+#line 659 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ConstMapContents =>");
       (yyval.tconstv) = new t_const_value();
       (yyval.tconstv)->set_map();
     }
-#line 2184 "thrifty.cc"
+#line 2143 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 49:
-#line 667 "thrifty.yy"
+#line 667 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.iconst) = struct_is_struct;
     }
-#line 2192 "thrifty.cc"
+#line 2151 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 50:
-#line 671 "thrifty.yy"
+#line 671 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.iconst) = struct_is_union;
     }
-#line 2200 "thrifty.cc"
+#line 2159 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 51:
-#line 677 "thrifty.yy"
+#line 677 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Struct -> tok_struct tok_identifier { FieldList }");
       validate_simple_identifier( (yyvsp[-5].id));
@@ -2208,204 +2167,204 @@ yyreduce:
       (yyvsp[-2].tstruct)->set_union((yyvsp[-6].iconst) == struct_is_union);
       (yyval.tstruct) = (yyvsp[-2].tstruct);
       (yyval.tstruct)->set_name((yyvsp[-5].id));
-      if ((yyvsp[0].ttype) != NULL) {
+      if ((yyvsp[0].ttype) != nullptr) {
         (yyval.tstruct)->annotations_ = (yyvsp[0].ttype)->annotations_;
         delete (yyvsp[0].ttype);
       }
     }
-#line 2217 "thrifty.cc"
+#line 2176 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 52:
-#line 692 "thrifty.yy"
+#line 692 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tbool) = true;
     }
-#line 2225 "thrifty.cc"
+#line 2184 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 53:
-#line 696 "thrifty.yy"
+#line 696 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tbool) = false;
     }
-#line 2233 "thrifty.cc"
+#line 2192 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 54:
-#line 702 "thrifty.yy"
+#line 702 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tbool) = true;
     }
-#line 2241 "thrifty.cc"
+#line 2200 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 55:
-#line 706 "thrifty.yy"
+#line 706 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tbool) = false;
     }
-#line 2249 "thrifty.cc"
+#line 2208 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 56:
-#line 712 "thrifty.yy"
+#line 712 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tbool) = true;
     }
-#line 2257 "thrifty.cc"
+#line 2216 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 57:
-#line 716 "thrifty.yy"
+#line 716 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tbool) = false;
     }
-#line 2265 "thrifty.cc"
+#line 2224 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 58:
-#line 722 "thrifty.yy"
+#line 722 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tstruct) = (yyvsp[-1].tstruct);
     }
-#line 2273 "thrifty.cc"
+#line 2232 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 59:
-#line 726 "thrifty.yy"
+#line 726 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
-      (yyval.tstruct) = NULL;
+      (yyval.tstruct) = nullptr;
     }
-#line 2281 "thrifty.cc"
+#line 2240 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 60:
-#line 732 "thrifty.yy"
+#line 732 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Xception -> tok_xception tok_identifier { FieldList }");
       validate_simple_identifier( (yyvsp[-4].id));
       (yyvsp[-2].tstruct)->set_name((yyvsp[-4].id));
       (yyvsp[-2].tstruct)->set_xception(true);
       (yyval.tstruct) = (yyvsp[-2].tstruct);
-      if ((yyvsp[0].ttype) != NULL) {
+      if ((yyvsp[0].ttype) != nullptr) {
         (yyval.tstruct)->annotations_ = (yyvsp[0].ttype)->annotations_;
         delete (yyvsp[0].ttype);
       }
     }
-#line 2297 "thrifty.cc"
+#line 2256 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 61:
-#line 746 "thrifty.yy"
+#line 746 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Service -> tok_service tok_identifier { FunctionList }");
       validate_simple_identifier( (yyvsp[-7].id));
       (yyval.tservice) = (yyvsp[-3].tservice);
       (yyval.tservice)->set_name((yyvsp[-7].id));
       (yyval.tservice)->set_extends((yyvsp[-6].tservice));
-      if ((yyvsp[0].ttype) != NULL) {
+      if ((yyvsp[0].ttype) != nullptr) {
         (yyval.tservice)->annotations_ = (yyvsp[0].ttype)->annotations_;
         delete (yyvsp[0].ttype);
       }
     }
-#line 2313 "thrifty.cc"
+#line 2272 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 62:
-#line 759 "thrifty.yy"
+#line 759 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
        g_arglist = 1;
     }
-#line 2321 "thrifty.cc"
+#line 2280 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 63:
-#line 764 "thrifty.yy"
+#line 764 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
        g_arglist = 0;
     }
-#line 2329 "thrifty.cc"
+#line 2288 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 64:
-#line 770 "thrifty.yy"
+#line 770 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Extends -> tok_extends tok_identifier");
-      (yyval.tservice) = NULL;
+      (yyval.tservice) = nullptr;
       if (g_parse_mode == PROGRAM) {
         (yyval.tservice) = g_scope->get_service((yyvsp[0].id));
-        if ((yyval.tservice) == NULL) {
+        if ((yyval.tservice) == nullptr) {
           yyerror("Service \"%s\" has not been defined.", (yyvsp[0].id));
           exit(1);
         }
       }
     }
-#line 2345 "thrifty.cc"
+#line 2304 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 65:
-#line 782 "thrifty.yy"
+#line 782 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
-      (yyval.tservice) = NULL;
+      (yyval.tservice) = nullptr;
     }
-#line 2353 "thrifty.cc"
+#line 2312 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 66:
-#line 788 "thrifty.yy"
+#line 788 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("FunctionList -> FunctionList Function");
       (yyval.tservice) = (yyvsp[-1].tservice);
       (yyvsp[-1].tservice)->add_function((yyvsp[0].tfunction));
     }
-#line 2363 "thrifty.cc"
+#line 2322 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 67:
-#line 794 "thrifty.yy"
+#line 794 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("FunctionList -> ");
       (yyval.tservice) = new t_service(g_program);
     }
-#line 2372 "thrifty.cc"
+#line 2331 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 68:
-#line 801 "thrifty.yy"
+#line 801 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       validate_simple_identifier( (yyvsp[-6].id));
       (yyvsp[-4].tstruct)->set_name(std::string((yyvsp[-6].id)) + "_args");
       (yyval.tfunction) = new t_function((yyvsp[-7].ttype), (yyvsp[-6].id), (yyvsp[-4].tstruct), (yyvsp[-2].tstruct), (yyvsp[-8].tbool));
-      if ((yyvsp[-9].dtext) != NULL) {
+      if ((yyvsp[-9].dtext) != nullptr) {
         (yyval.tfunction)->set_doc((yyvsp[-9].dtext));
       }
-      if ((yyvsp[-1].ttype) != NULL) {
+      if ((yyvsp[-1].ttype) != nullptr) {
         (yyval.tfunction)->annotations_ = (yyvsp[-1].ttype)->annotations_;
         delete (yyvsp[-1].ttype);
       }
     }
-#line 2389 "thrifty.cc"
+#line 2348 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 69:
-#line 816 "thrifty.yy"
+#line 816 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tbool) = true;
     }
-#line 2397 "thrifty.cc"
+#line 2356 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 70:
-#line 820 "thrifty.yy"
+#line 820 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tbool) = false;
     }
-#line 2405 "thrifty.cc"
+#line 2364 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 71:
-#line 826 "thrifty.yy"
+#line 826 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("Throws -> tok_throws ( FieldList )");
       (yyval.tstruct) = (yyvsp[-1].tstruct);
@@ -2414,19 +2373,19 @@ yyreduce:
         exit(1);
       }
     }
-#line 2418 "thrifty.cc"
+#line 2377 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 72:
-#line 835 "thrifty.yy"
+#line 835 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tstruct) = new t_struct(g_program);
     }
-#line 2426 "thrifty.cc"
+#line 2385 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 73:
-#line 841 "thrifty.yy"
+#line 841 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("FieldList -> FieldList , Field");
       (yyval.tstruct) = (yyvsp[-1].tstruct);
@@ -2435,21 +2394,21 @@ yyreduce:
         exit(1);
       }
     }
-#line 2439 "thrifty.cc"
+#line 2398 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 74:
-#line 850 "thrifty.yy"
+#line 850 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("FieldList -> ");
       y_field_val = -1;
       (yyval.tstruct) = new t_struct(g_program);
     }
-#line 2449 "thrifty.cc"
+#line 2408 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 75:
-#line 858 "thrifty.yy"
+#line 858 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("tok_int_constant : Field -> FieldType tok_identifier");
       if ((yyvsp[-10].tfieldid).auto_assigned) {
@@ -2463,29 +2422,29 @@ yyreduce:
       (yyval.tfield) = new t_field((yyvsp[-8].ttype), (yyvsp[-6].id), (yyvsp[-10].tfieldid).value);
       (yyval.tfield)->set_reference((yyvsp[-7].tbool));
       (yyval.tfield)->set_req((yyvsp[-9].ereq));
-      if ((yyvsp[-5].tconstv) != NULL) {
+      if ((yyvsp[-5].tconstv) != nullptr) {
         g_scope->resolve_const_value((yyvsp[-5].tconstv), (yyvsp[-8].ttype));
         validate_field_value((yyval.tfield), (yyvsp[-5].tconstv));
         (yyval.tfield)->set_value((yyvsp[-5].tconstv));
       }
       (yyval.tfield)->set_xsd_optional((yyvsp[-4].tbool));
       (yyval.tfield)->set_xsd_nillable((yyvsp[-3].tbool));
-      if ((yyvsp[-11].dtext) != NULL) {
+      if ((yyvsp[-11].dtext) != nullptr) {
         (yyval.tfield)->set_doc((yyvsp[-11].dtext));
       }
-      if ((yyvsp[-2].tstruct) != NULL) {
+      if ((yyvsp[-2].tstruct) != nullptr) {
         (yyval.tfield)->set_xsd_attrs((yyvsp[-2].tstruct));
       }
-      if ((yyvsp[-1].ttype) != NULL) {
+      if ((yyvsp[-1].ttype) != nullptr) {
         (yyval.tfield)->annotations_ = (yyvsp[-1].ttype)->annotations_;
         delete (yyvsp[-1].ttype);
       }
     }
-#line 2485 "thrifty.cc"
+#line 2444 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 76:
-#line 892 "thrifty.yy"
+#line 892 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       if ((yyvsp[-1].iconst) <= 0) {
         if (g_allow_neg_field_keys) {
@@ -2524,11 +2483,11 @@ yyreduce:
                  (yyval.tfieldid).value, SHRT_MIN, SHRT_MAX);
       }
     }
-#line 2528 "thrifty.cc"
+#line 2487 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 77:
-#line 931 "thrifty.yy"
+#line 931 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tfieldid).value = y_field_val--;
       (yyval.tfieldid).auto_assigned = true;
@@ -2537,35 +2496,35 @@ yyreduce:
                  (yyval.tfieldid).value, SHRT_MIN, SHRT_MAX);
       }
     }
-#line 2541 "thrifty.cc"
+#line 2500 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 78:
-#line 942 "thrifty.yy"
+#line 942 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.tbool) = true;
     }
-#line 2549 "thrifty.cc"
+#line 2508 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 79:
-#line 946 "thrifty.yy"
+#line 946 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
    {
      (yyval.tbool) = false;
    }
-#line 2557 "thrifty.cc"
+#line 2516 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 80:
-#line 952 "thrifty.yy"
+#line 952 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.ereq) = t_field::T_REQUIRED;
     }
-#line 2565 "thrifty.cc"
+#line 2524 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 81:
-#line 956 "thrifty.yy"
+#line 956 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       if (g_arglist) {
         if (g_parse_mode == PROGRAM) {
@@ -2576,66 +2535,66 @@ yyreduce:
         (yyval.ereq) = t_field::T_OPTIONAL;
       }
     }
-#line 2580 "thrifty.cc"
+#line 2539 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 82:
-#line 967 "thrifty.yy"
+#line 967 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.ereq) = t_field::T_OPT_IN_REQ_OUT;
     }
-#line 2588 "thrifty.cc"
+#line 2547 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 83:
-#line 973 "thrifty.yy"
+#line 973 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       if (g_parse_mode == PROGRAM) {
         (yyval.tconstv) = (yyvsp[0].tconstv);
       } else {
-        (yyval.tconstv) = NULL;
+        (yyval.tconstv) = nullptr;
       }
     }
-#line 2600 "thrifty.cc"
+#line 2559 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 84:
-#line 981 "thrifty.yy"
+#line 981 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
-      (yyval.tconstv) = NULL;
+      (yyval.tconstv) = nullptr;
     }
-#line 2608 "thrifty.cc"
+#line 2567 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 85:
-#line 987 "thrifty.yy"
+#line 987 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("FunctionType -> FieldType");
       (yyval.ttype) = (yyvsp[0].ttype);
     }
-#line 2617 "thrifty.cc"
+#line 2576 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 86:
-#line 992 "thrifty.yy"
+#line 992 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("FunctionType -> tok_void");
       (yyval.ttype) = g_type_void;
     }
-#line 2626 "thrifty.cc"
+#line 2585 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 87:
-#line 999 "thrifty.yy"
+#line 999 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("FieldType -> tok_identifier");
       if (g_parse_mode == INCLUDES) {
         // Ignore identifiers in include mode
-        (yyval.ttype) = NULL;
+        (yyval.ttype) = nullptr;
       } else {
         // Lookup the identifier in the current scope
         (yyval.ttype) = g_scope->get_type((yyvsp[0].id));
-        if ((yyval.ttype) == NULL) {
+        if ((yyval.ttype) == nullptr) {
           /*
            * Either this type isn't yet declared, or it's never
              declared.  Either way allow it and we'll figure it out
@@ -2645,32 +2604,32 @@ yyreduce:
         }
       }
     }
-#line 2649 "thrifty.cc"
+#line 2608 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 88:
-#line 1018 "thrifty.yy"
+#line 1018 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("FieldType -> BaseType");
       (yyval.ttype) = (yyvsp[0].ttype);
     }
-#line 2658 "thrifty.cc"
+#line 2617 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 89:
-#line 1023 "thrifty.yy"
+#line 1023 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("FieldType -> ContainerType");
       (yyval.ttype) = (yyvsp[0].ttype);
     }
-#line 2667 "thrifty.cc"
+#line 2626 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 90:
-#line 1029 "thrifty.yy"
+#line 1029 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("BaseType -> SimpleBaseType TypeAnnotations");
-      if ((yyvsp[0].ttype) != NULL) {
+      if ((yyvsp[0].ttype) != nullptr) {
         (yyval.ttype) = new t_base_type(*static_cast<t_base_type*>((yyvsp[-1].ttype)));
         (yyval.ttype)->annotations_ = (yyvsp[0].ttype)->annotations_;
         delete (yyvsp[0].ttype);
@@ -2678,251 +2637,251 @@ yyreduce:
         (yyval.ttype) = (yyvsp[-1].ttype);
       }
     }
-#line 2682 "thrifty.cc"
+#line 2641 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 91:
-#line 1042 "thrifty.yy"
+#line 1042 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("BaseType -> tok_string");
       (yyval.ttype) = g_type_string;
     }
-#line 2691 "thrifty.cc"
+#line 2650 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 92:
-#line 1047 "thrifty.yy"
+#line 1047 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("BaseType -> tok_binary");
       (yyval.ttype) = g_type_binary;
     }
-#line 2700 "thrifty.cc"
+#line 2659 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 93:
-#line 1052 "thrifty.yy"
+#line 1052 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("BaseType -> tok_slist");
       (yyval.ttype) = g_type_slist;
     }
-#line 2709 "thrifty.cc"
+#line 2668 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 94:
-#line 1057 "thrifty.yy"
+#line 1057 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("BaseType -> tok_bool");
       (yyval.ttype) = g_type_bool;
     }
-#line 2718 "thrifty.cc"
+#line 2677 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 95:
-#line 1062 "thrifty.yy"
+#line 1062 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("BaseType -> tok_i8");
       (yyval.ttype) = g_type_i8;
     }
-#line 2727 "thrifty.cc"
+#line 2686 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 96:
-#line 1067 "thrifty.yy"
+#line 1067 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("BaseType -> tok_i16");
       (yyval.ttype) = g_type_i16;
     }
-#line 2736 "thrifty.cc"
+#line 2695 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 97:
-#line 1072 "thrifty.yy"
+#line 1072 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("BaseType -> tok_i32");
       (yyval.ttype) = g_type_i32;
     }
-#line 2745 "thrifty.cc"
+#line 2704 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 98:
-#line 1077 "thrifty.yy"
+#line 1077 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("BaseType -> tok_i64");
       (yyval.ttype) = g_type_i64;
     }
-#line 2754 "thrifty.cc"
+#line 2713 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 99:
-#line 1082 "thrifty.yy"
+#line 1082 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("BaseType -> tok_double");
       (yyval.ttype) = g_type_double;
     }
-#line 2763 "thrifty.cc"
+#line 2722 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 100:
-#line 1088 "thrifty.yy"
+#line 1088 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ContainerType -> SimpleContainerType TypeAnnotations");
       (yyval.ttype) = (yyvsp[-1].ttype);
-      if ((yyvsp[0].ttype) != NULL) {
+      if ((yyvsp[0].ttype) != nullptr) {
         (yyval.ttype)->annotations_ = (yyvsp[0].ttype)->annotations_;
         delete (yyvsp[0].ttype);
       }
     }
-#line 2776 "thrifty.cc"
+#line 2735 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 101:
-#line 1099 "thrifty.yy"
+#line 1099 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("SimpleContainerType -> MapType");
       (yyval.ttype) = (yyvsp[0].ttype);
     }
-#line 2785 "thrifty.cc"
+#line 2744 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 102:
-#line 1104 "thrifty.yy"
+#line 1104 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("SimpleContainerType -> SetType");
       (yyval.ttype) = (yyvsp[0].ttype);
     }
-#line 2794 "thrifty.cc"
+#line 2753 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 103:
-#line 1109 "thrifty.yy"
+#line 1109 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("SimpleContainerType -> ListType");
       (yyval.ttype) = (yyvsp[0].ttype);
     }
-#line 2803 "thrifty.cc"
+#line 2762 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 104:
-#line 1116 "thrifty.yy"
+#line 1116 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("MapType -> tok_map <FieldType, FieldType>");
       (yyval.ttype) = new t_map((yyvsp[-3].ttype), (yyvsp[-1].ttype));
-      if ((yyvsp[-5].id) != NULL) {
+      if ((yyvsp[-5].id) != nullptr) {
         ((t_container*)(yyval.ttype))->set_cpp_name(std::string((yyvsp[-5].id)));
       }
     }
-#line 2815 "thrifty.cc"
+#line 2774 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 105:
-#line 1126 "thrifty.yy"
+#line 1126 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("SetType -> tok_set<FieldType>");
       (yyval.ttype) = new t_set((yyvsp[-1].ttype));
-      if ((yyvsp[-3].id) != NULL) {
+      if ((yyvsp[-3].id) != nullptr) {
         ((t_container*)(yyval.ttype))->set_cpp_name(std::string((yyvsp[-3].id)));
       }
     }
-#line 2827 "thrifty.cc"
+#line 2786 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 106:
-#line 1136 "thrifty.yy"
+#line 1136 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("ListType -> tok_list<FieldType>");
       check_for_list_of_bytes((yyvsp[-2].ttype));
       (yyval.ttype) = new t_list((yyvsp[-2].ttype));
-      if ((yyvsp[0].id) != NULL) {
+      if ((yyvsp[0].id) != nullptr) {
         ((t_container*)(yyval.ttype))->set_cpp_name(std::string((yyvsp[0].id)));
       }
     }
-#line 2840 "thrifty.cc"
+#line 2799 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 107:
-#line 1147 "thrifty.yy"
+#line 1147 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       (yyval.id) = (yyvsp[0].id);
     }
-#line 2848 "thrifty.cc"
+#line 2807 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 108:
-#line 1151 "thrifty.yy"
+#line 1151 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
-      (yyval.id) = NULL;
+      (yyval.id) = nullptr;
     }
-#line 2856 "thrifty.cc"
+#line 2815 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 109:
-#line 1157 "thrifty.yy"
+#line 1157 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeAnnotations -> ( TypeAnnotationList )");
       (yyval.ttype) = (yyvsp[-1].ttype);
     }
-#line 2865 "thrifty.cc"
+#line 2824 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 110:
-#line 1162 "thrifty.yy"
+#line 1162 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
-      (yyval.ttype) = NULL;
+      (yyval.ttype) = nullptr;
     }
-#line 2873 "thrifty.cc"
+#line 2832 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 111:
-#line 1168 "thrifty.yy"
+#line 1168 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeAnnotationList -> TypeAnnotationList , TypeAnnotation");
       (yyval.ttype) = (yyvsp[-1].ttype);
       (yyval.ttype)->annotations_[(yyvsp[0].tannot)->key] = (yyvsp[0].tannot)->val;
       delete (yyvsp[0].tannot);
     }
-#line 2884 "thrifty.cc"
+#line 2843 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 112:
-#line 1175 "thrifty.yy"
+#line 1175 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       /* Just use a dummy structure to hold the annotations. */
       (yyval.ttype) = new t_struct(g_program);
     }
-#line 2893 "thrifty.cc"
+#line 2852 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 113:
-#line 1182 "thrifty.yy"
+#line 1182 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeAnnotation -> TypeAnnotationValue");
       (yyval.tannot) = new t_annotation;
       (yyval.tannot)->key = (yyvsp[-2].id);
       (yyval.tannot)->val = (yyvsp[-1].id);
     }
-#line 2904 "thrifty.cc"
+#line 2863 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 114:
-#line 1191 "thrifty.yy"
+#line 1191 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeAnnotationValue -> = tok_literal");
       (yyval.id) = (yyvsp[0].id);
     }
-#line 2913 "thrifty.cc"
+#line 2872 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
   case 115:
-#line 1196 "thrifty.yy"
+#line 1196 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
     {
       pdebug("TypeAnnotationValue ->");
       (yyval.id) = strdup("1");
     }
-#line 2922 "thrifty.cc"
+#line 2881 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
     break;
 
 
-#line 2926 "thrifty.cc"
+#line 2885 "/home/thomas/Sources/thrift/compiler/cpp/build/thrift/thrifty.cc"
 
       default: break;
     }
@@ -3154,5 +3113,5 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 1201 "thrifty.yy"
+#line 1201 "/home/thomas/Sources/thrift/compiler/cpp/src/thrift/thrifty.yy"
 
