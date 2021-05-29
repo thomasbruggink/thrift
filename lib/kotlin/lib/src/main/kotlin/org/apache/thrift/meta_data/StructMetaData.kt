@@ -16,17 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.thrift.meta_data
 
-namespace kotlin com.testing.api
+import org.apache.thrift.TBase
 
-struct ChildAll {
-    1: i16 innerVariable,
-}
-
-struct HelloAll {
-  1: string Variable1,
-  2: i32 Variable2,
-  3: i64 Variable3,
-  4: ChildAll ChildNode
-}
-
+class StructMetaData(type: Byte, val structClass: Class<out TBase<*, *>?>) : FieldValueMetaData(type)

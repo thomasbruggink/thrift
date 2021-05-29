@@ -25,7 +25,7 @@ import java.io.Serializable
  * FieldValueMetaData and collection of subclasses to store metadata about
  * the value(s) of a field
  */
-class FieldValueMetaData : Serializable {
+open class FieldValueMetaData : Serializable {
     val type: Byte
     val isTypedef: Boolean
     val typedefName: String?
