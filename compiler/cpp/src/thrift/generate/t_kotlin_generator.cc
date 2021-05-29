@@ -1153,8 +1153,8 @@ void t_kotlin_generator::generate_check_type(ostream &out, t_struct *tstruct) {
 
 void t_kotlin_generator::generate_standard_scheme_read_value(ostream &out, t_struct *tstruct) {
   indent(out) << "@Override" << endl;
-  indent(out) << "protected kotlin.lang.Object standardSchemeReadValue(org.apache.thrift.protocol.TProtocol "
-                 "iprot, org.apache.thrift.protocol.TField field) throws "
+  indent(out) << "protected java.lang.Object standardSchemeReadValue( "
+              << "iprot: org.apache.thrift.protocol.TProtocol, field: org.apache.thrift.protocol.TField) throws "
                  "org.apache.thrift.TException {" << endl;
 
   indent_up();
@@ -1459,9 +1459,12 @@ void t_kotlin_generator::generate_kotlin_struct_definition(ostream &out,
   indent_down();
   out << ")";
   if (is_exception) {
-    out << "extends org.apache.thrift.TException ";
+    out << ": org.apache.thrift.TException(), ";
   }
-  out << ": org.apache.thrift.TBase<" << tstruct->get_name() << ", " << tstruct->get_name()
+  else {
+    out << ":";
+  }
+  out << " org.apache.thrift.TBase<" << tstruct->get_name() << ", " << tstruct->get_name()
       << "._Fields>, java.io.Serializable, Cloneable, Comparable<" << tstruct->get_name() << ">";
 
   out << " ";

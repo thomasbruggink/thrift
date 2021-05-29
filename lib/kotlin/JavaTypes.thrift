@@ -19,8 +19,13 @@
 
 namespace kotlin com.testing.api
 
+exception Error {
+  1: i64 errorCode,
+  2: string reason
+}
+
 struct ChildAll {
-    1: i16 innerVariable,
+  1: i16 innerVariable,
 }
 
 struct HelloAll {
