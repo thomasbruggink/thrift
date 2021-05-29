@@ -16,29 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.thrift
 
-namespace kotlin com.testing.api
-
-enum ErrorCodes {
-  AUTH_ERROR ;
-  SERVER_ERROR;
-  INVALID_CODE;
-  UNKNOWN_ERROR = 0x500;
-  DECIMAL = 100;
-}
-
-exception Error {
-  1: ErrorCodes errorCode,
-  2: string reason
-}
-
-struct ChildAll {
-  1: i16 innerVariable,
-}
-
-struct HelloAll {
-  1: string Variable1,
-  2: i32 Variable2,
-  3: i64 Variable3,
-  4: ChildAll ChildNode
+interface TEnum {
+    val value: Int
 }

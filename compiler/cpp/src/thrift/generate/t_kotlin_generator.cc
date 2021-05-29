@@ -514,7 +514,9 @@ void t_kotlin_generator::generate_enum(t_enum *tenum) {
   if (is_deprecated) {
     indent(f_enum) << "@Deprecated" << endl;
   }
-  indent(f_enum) << "public enum class " << tenum->get_name() << " : org.apache.thrift.TEnum ";
+  indent(f_enum) << "public enum class " << tenum->get_name() << "(" << endl
+                 << indent() << "  override val value: Int" << endl
+                 << indent() << "): org.apache.thrift.TEnum ";
   scope_up(f_enum);
 
   vector<t_enum_value *> constants = tenum->get_constants();
@@ -537,51 +539,40 @@ void t_kotlin_generator::generate_enum(t_enum *tenum) {
   }
   f_enum << ";" << endl << endl;
 
-  // Field for thriftCode
-  indent(f_enum) << "private final int value;" << endl << endl;
-
-  indent(f_enum) << "private " << tenum->get_name() << "(int value) {" << endl;
-  indent(f_enum) << "  this.value = value;" << endl;
-  indent(f_enum) << "}" << endl << endl;
-
-  indent(f_enum) << "/**" << endl;
-  indent(f_enum) << " * Get the integer value of this enum value, as defined in the Thrift IDL."
-                 << endl;
-  indent(f_enum) << " */" << endl;
-  indent(f_enum) << "public int getValue() {" << endl;
-  indent(f_enum) << "  return value;" << endl;
-  indent(f_enum) << "}" << endl << endl;
-
+  // Companion object
+  indent(f_enum) << "companion object {" << endl;
+  indent_up();
   indent(f_enum) << "/**" << endl;
   indent(f_enum) << " * Find a the enum type by its integer value, as defined in the Thrift IDL."
                  << endl;
   indent(f_enum) << " * @return null if the value is not found." << endl;
   indent(f_enum) << " */" << endl;
-  indent(f_enum) << kotlin_nullable_annotation() << endl;
-  indent(f_enum) << "public static " + tenum->get_name() + " findByValue(int value) { " << endl;
-
+  indent(f_enum) << "fun findByValue(value: Int): " << tenum->get_name() << kotlin_nullable_annotation()
+                 << " {" << endl;
   indent_up();
 
-  indent(f_enum) << "switch (value) {" << endl;
+  indent(f_enum) << "return when (value) {" << endl;
   indent_up();
 
   for (c_iter = constants.begin(); c_iter != constants.end(); ++c_iter) {
     int value = (*c_iter)->get_value();
-    indent(f_enum) << "case " << value << ":" << endl;
-    indent(f_enum) << "  return " << (*c_iter)->get_name() << ";" << endl;
+    indent(f_enum) << value << " -> " << endl;
+    indent(f_enum) << "  " << (*c_iter)->get_name() << endl;
   }
 
-  indent(f_enum) << "default:" << endl;
-  indent(f_enum) << "  return null;" << endl;
+  indent(f_enum) << "else ->" << endl;
+  indent(f_enum) << "  null" << endl;
 
-  indent_down();
+  // End of switch
+  scope_down(f_enum);
 
-  indent(f_enum) << "}" << endl;
+  // End fun
+  scope_down(f_enum);
 
-  indent_down();
+  // End companion object
+  scope_down(f_enum);
 
-  indent(f_enum) << "}" << endl;
-
+  // End of enum
   scope_down(f_enum);
 
   f_enum.close();
@@ -1460,8 +1451,7 @@ void t_kotlin_generator::generate_kotlin_struct_definition(ostream &out,
   out << ")";
   if (is_exception) {
     out << ": org.apache.thrift.TException(), ";
-  }
-  else {
+  } else {
     out << ":";
   }
   out << " org.apache.thrift.TBase<" << tstruct->get_name() << ", " << tstruct->get_name()
@@ -1967,7 +1957,7 @@ void t_kotlin_generator::generate_kotlin_struct_equality(ostream &out, t_struct 
     }
 
     if (t->is_enum()) {
-      indent(out) << "hashCode = hashCode * " << MUL << " + " << name << ".getValue()" << endl;
+      indent(out) << "hashCode = hashCode * " << MUL << " + " << name << "!!.value" << endl;
     } else if (t->is_base_type()) {
       switch (((t_base_type *) t)->get_base()) {
         case t_base_type::TYPE_STRING:
@@ -2753,7 +2743,7 @@ void t_kotlin_generator::generate_field_value_meta_data(std::ostream &out, t_typ
   } else if (type->is_enum()) {
     indent(out)
             << "org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, "
-            << type_name(type) << ".class";
+            << type_name(type) << "::class.java";
   } else {
     indent(out) << "org.apache.thrift.meta_data.FieldValueMetaData("
                 << get_kotlin_type_string(type);
@@ -3978,7 +3968,7 @@ void t_kotlin_generator::generate_serialize_field(ostream &out,
   } else if (type->is_container()) {
     generate_serialize_container(out, type, prefix + tfield->get_name(), has_metadata);
   } else if (type->is_enum()) {
-    indent(out) << "oprot.writeI32(" << prefix + tfield->get_name() << ".getValue());" << endl;
+    indent(out) << "oprot.writeI32(" << prefix + tfield->get_name() << "!!.value)" << endl;
   } else if (type->is_base_type()) {
     string name = prefix + tfield->get_name();
     indent(out) << "oprot.";
