@@ -691,7 +691,7 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readMessageBegin(): TMessage? {
+    override fun readMessageBegin(): TMessage {
         resetContext() // THRIFT-3743
         readJSONArrayStart()
         if (readJSONInteger() != VERSION) {
@@ -712,7 +712,7 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readStructBegin(): TStruct? {
+    override fun readStructBegin(): TStruct {
         readJSONObjectStart()
         return ANONYMOUS_STRUCT
     }
@@ -743,7 +743,7 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readMapBegin(): TMap? {
+    override fun readMapBegin(): TMap {
         readJSONArrayStart()
         val keyType = getTypeIDForTypeName(readJSONString(false).get())
         val valueType = getTypeIDForTypeName(readJSONString(false).get())
@@ -761,7 +761,7 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readListBegin(): TList? {
+    override fun readListBegin(): TList {
         readJSONArrayStart()
         val elemType = getTypeIDForTypeName(readJSONString(false).get())
         val size = readJSONInteger().toInt()
@@ -776,7 +776,7 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readSetBegin(): TSet? {
+    override fun readSetBegin(): TSet {
         readJSONArrayStart()
         val elemType = getTypeIDForTypeName(readJSONString(false).get())
         val size = readJSONInteger().toInt()
@@ -821,7 +821,7 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readString(): String? {
+    override fun readString(): String {
         return readJSONString(false).toString(StandardCharsets.UTF_8)
     }
 

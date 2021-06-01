@@ -221,7 +221,7 @@ class TBinaryProtocol @JvmOverloads constructor(
      * Reading methods.
      */
     @Throws(TException::class)
-    override fun readMessageBegin(): TMessage? {
+    override fun readMessageBegin(): TMessage {
         val size = readI32()
         return if (size < 0) {
             val version = size and VERSION_MASK
@@ -245,7 +245,7 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readStructBegin(): TStruct? {
+    override fun readStructBegin(): TStruct {
         return ANONYMOUS_STRUCT
     }
 
@@ -265,7 +265,7 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readMapBegin(): TMap? {
+    override fun readMapBegin(): TMap {
         val map = TMap(readByte(), readByte(), readI32())
         checkReadBytesAvailable(map)
         checkContainerReadLength(map.size)
@@ -277,7 +277,7 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readListBegin(): TList? {
+    override fun readListBegin(): TList {
         val list = TList(readByte(), readI32())
         checkReadBytesAvailable(list)
         checkContainerReadLength(list.size)
@@ -289,7 +289,7 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readSetBegin(): TSet? {
+    override fun readSetBegin(): TSet {
         val set = TSet(readByte(), readI32())
         checkReadBytesAvailable(set)
         checkContainerReadLength(set.size)
@@ -375,7 +375,7 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readString(): String? {
+    override fun readString(): String {
         val size = readI32()
         if (trans_!!.bytesRemainingInBuffer >= size) {
             val s = String(

@@ -472,7 +472,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Read a message header.
      */
     @Throws(TException::class)
-    override fun readMessageBegin(): TMessage? {
+    override fun readMessageBegin(): TMessage {
         val protocolId = readByte()
         if (protocolId != PROTOCOL_ID) {
             throw TProtocolException(
@@ -497,7 +497,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * opportunity to push a new struct begin marker onto the field stack.
      */
     @Throws(TException::class)
-    override fun readStructBegin(): TStruct? {
+    override fun readStructBegin(): TStruct {
         lastField_.push(lastFieldId_)
         lastFieldId_ = 0
         return ANONYMOUS_STRUCT
@@ -555,7 +555,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * "correct" types.
      */
     @Throws(TException::class)
-    override fun readMapBegin(): TMap? {
+    override fun readMapBegin(): TMap {
         val size = readVarint32()
         checkContainerReadLength(size)
         val keyAndValueType = if (size == 0) 0 else readByte()
@@ -571,7 +571,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * true size.
      */
     @Throws(TException::class)
-    override fun readListBegin(): TList? {
+    override fun readListBegin(): TList {
         val size_and_type = readByte()
         var size: Int = (size_and_type shr 4 and 0x0f).toInt()
         if (size == 15) {
@@ -590,7 +590,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * true size.
      */
     @Throws(TException::class)
-    override fun readSetBegin(): TSet? {
+    override fun readSetBegin(): TSet {
         return TSet(readListBegin()!!)
     }
 
@@ -662,7 +662,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Reads a byte[] (via readBinary), and then UTF-8 decodes it.
      */
     @Throws(TException::class)
-    override fun readString(): String? {
+    override fun readString(): String {
         val length = readVarint32()
         checkStringReadLength(length)
         if (length == 0) {

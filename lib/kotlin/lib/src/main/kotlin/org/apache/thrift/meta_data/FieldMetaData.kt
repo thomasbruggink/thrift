@@ -28,10 +28,11 @@ import java.io.Serializable
  *
  */
 class FieldMetaData(val fieldName: String, val requirementType: Byte, vMetaData: FieldValueMetaData) : Serializable {
-    val valueMetaData: FieldValueMetaData
+    val valueMetaData: FieldValueMetaData = vMetaData
 
     companion object {
         private var structMap: MutableMap<Class<out TBase<*, *>?>, Map<out TFieldIdEnum?, FieldMetaData>?>? = null
+
         @Synchronized
         fun addStructMetaDataMap(sClass: Class<out TBase<*, *>?>, map: Map<out TFieldIdEnum?, FieldMetaData>?) {
             structMap!![sClass] = map
@@ -60,9 +61,5 @@ class FieldMetaData(val fieldName: String, val requirementType: Byte, vMetaData:
         init {
             structMap = HashMap()
         }
-    }
-
-    init {
-        valueMetaData = vMetaData
     }
 }

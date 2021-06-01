@@ -109,11 +109,11 @@ abstract class TProtocol {
      * Reading methods.
      */
     @Throws(TException::class)
-    abstract fun readMessageBegin(): TMessage?
+    abstract fun readMessageBegin(): TMessage
     @Throws(TException::class)
     abstract fun readMessageEnd()
     @Throws(TException::class)
-    abstract fun readStructBegin(): TStruct?
+    abstract fun readStructBegin(): TStruct
     @Throws(TException::class)
     abstract fun readStructEnd()
     @Throws(TException::class)
@@ -121,15 +121,15 @@ abstract class TProtocol {
     @Throws(TException::class)
     abstract fun readFieldEnd()
     @Throws(TException::class)
-    abstract fun readMapBegin(): TMap?
+    abstract fun readMapBegin(): TMap
     @Throws(TException::class)
     abstract fun readMapEnd()
     @Throws(TException::class)
-    abstract fun readListBegin(): TList?
+    abstract fun readListBegin(): TList
     @Throws(TException::class)
     abstract fun readListEnd()
     @Throws(TException::class)
-    abstract fun readSetBegin(): TSet?
+    abstract fun readSetBegin(): TSet
     @Throws(TException::class)
     abstract fun readSetEnd()
     @Throws(TException::class)
@@ -145,7 +145,7 @@ abstract class TProtocol {
     @Throws(TException::class)
     abstract fun readDouble(): Double
     @Throws(TException::class)
-    abstract fun readString(): String?
+    abstract fun readString(): String
     @Throws(TException::class)
     abstract fun readBinary(): ByteBuffer?
 
