@@ -97,9 +97,9 @@ public class ChildAll(
     when (field) {
     _Fields.INNER_VARIABLE ->
       if (value == null) {
-        unsetInnerVariable();
+        unsetInnerVariable()
       } else {
-        setInnerVariable(value as Short);
+        setInnerVariable(value as Short)
       }
 
     }
@@ -183,14 +183,14 @@ public class ChildAll(
   }
 
   override fun toString():String {
-    val sb:java.lang.StringBuilder = java.lang.StringBuilder("ChildAll(");
+    val sb:java.lang.StringBuilder = java.lang.StringBuilder("ChildAll(")
     var first:Boolean = true
 
-    sb.append("innerVariable:");
-    sb.append(this.innerVariable);
-    first = false;
+    sb.append("innerVariable:")
+    sb.append(this.innerVariable)
+    first = false
     sb.append(")");
-    return sb.toString();
+    return sb.toString()
   }
 
   fun validate() {

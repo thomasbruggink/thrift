@@ -44,4 +44,5 @@ struct HelloAll {
   5: list<string> listString,
   6: map<string, string> mapStringString,
   7: set<string> setString,
+  8: binary binData
 }

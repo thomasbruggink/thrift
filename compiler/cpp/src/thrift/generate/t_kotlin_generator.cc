@@ -1122,7 +1122,7 @@ void t_kotlin_generator::generate_check_type(ostream &out, t_struct *tstruct) {
     t_field *field = (*m_iter);
 
     indent(out) << "case " << constant_name(field->get_name()) << ":" << endl;
-    indent(out) << "  if (value instanceof " << type_name(field->get_type(), true, false, true)
+    indent(out) << "  if (value is " << type_name(field->get_type(), true, false, true)
                 << ") {" << endl;
     indent(out) << "    break;" << endl;
     indent(out) << "  }" << endl;
@@ -2144,15 +2144,15 @@ void t_kotlin_generator::generate_reflection_setters(ostringstream &out,
   indent(out) << "_Fields." << constant_name(field_name) << " ->" << endl;
   indent_up();
   indent(out) << "if (value == null) {" << endl;
-  indent(out) << "  unset" << get_cap_name(field_name) << "();" << endl;
+  indent(out) << "  unset" << get_cap_name(field_name) << "()" << endl;
   indent(out) << "} else {" << endl;
   if (is_binary) {
     indent_up();
-    indent(out) << "if (value instanceof byte[]) {" << endl;
-    indent(out) << "  set" << cap_name << "((byte[])value);" << endl;
+    indent(out) << "if (value is ByteArray) {" << endl;
+    indent(out) << "  set" << cap_name << "(value)" << endl;
     indent(out) << "} else {" << endl;
   }
-  indent(out) << "  set" << cap_name << "(value as " << type_name(type, true, false) << ");" << endl;
+  indent(out) << "  set" << cap_name << "(value as " << type_name(type, true, false) << ")" << endl;
   if (is_binary) {
     indent(out) << "}" << endl;
     indent_down();
@@ -2375,16 +2375,16 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
       if (is_deprecated) {
         indent(out) << "@Deprecated" << endl;
       }
-      indent(out) << "fun get" << cap_name << "(): Byte[] {" << endl;
+      indent(out) << "fun get" << cap_name << "():ByteArray? {" << endl;
       indent(out) << "  set" << cap_name << "(org.apache.thrift.TBaseHelper.rightSize("
                   << field_name << "));" << endl;
-      indent(out) << "  return " << field_name << " == null ? null : " << field_name << ".array();"
+      indent(out) << "  return " << field_name << "?.array()"
                   << endl;
       indent(out) << "}" << endl << endl;
 
-      indent(out) << "fun buffer" << get_cap_name("for") << cap_name << "():java.nio.ByteBuffer {"
+      indent(out) << "fun buffer" << get_cap_name("for") << cap_name << "():java.nio.ByteBuffer? {"
                   << endl;
-      indent(out) << "  return org.apache.thrift.TBaseHelper.copyBinary(" << field_name << ");"
+      indent(out) << "  return org.apache.thrift.TBaseHelper.copyBinary(" << field_name << ")"
                   << endl;
       indent(out) << "}" << endl << endl;
     } else {
@@ -2441,13 +2441,12 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
         indent(out) << "@Deprecated" << endl;
       }
       indent(out) << "fun ";
-      out << type_name(tstruct);
-      out << " set" << cap_name << "(" << field_name << ": Byte[]): " << type_name(tstruct) << " {" << endl;
-      indent(out) << "  this." << field_name << " = " << field_name << " == null ? (java.nio.ByteBuffer)null";
+      out << "set" << cap_name << "(" << field_name << ": ByteArray?): " << type_name(tstruct) << " {" << endl;
+      indent(out) << "  this." << field_name << " = if(" << field_name << " == null) null";
 
-      indent(out) << " : java.nio.ByteBuffer.wrap(" << field_name << ".clone());" << endl;
+      indent(out) << " else java.nio.ByteBuffer.wrap(" << field_name << ".clone())" << endl;
 
-      indent(out) << "  return this;" << endl;
+      indent(out) << "  return this" << endl;
       indent(out) << "}" << endl << endl;
     }
     if (is_deprecated) {
@@ -2538,7 +2537,7 @@ void t_kotlin_generator::generate_kotlin_struct_tostring(ostream &out, t_struct 
   out << indent() << "override fun toString():String {" << endl;
   indent_up();
 
-  out << indent() << "val sb:java.lang.StringBuilder = java.lang.StringBuilder(\"" << tstruct->get_name() << "(\");"
+  out << indent() << "val sb:java.lang.StringBuilder = java.lang.StringBuilder(\"" << tstruct->get_name() << "(\")"
       << endl;
   out << indent() << "var first:Boolean = true" << endl << endl;
 
@@ -2555,37 +2554,37 @@ void t_kotlin_generator::generate_kotlin_struct_tostring(ostream &out, t_struct 
     string field_name = field->get_name();
 
     if (!first) {
-      indent(out) << "if (!first) sb.append(\", \");" << endl;
+      indent(out) << "if (!first) sb.append(\", \")" << endl;
     }
-    indent(out) << "sb.append(\"" << field_name << ":\");" << endl;
+    indent(out) << "sb.append(\"" << field_name << ":\")" << endl;
     bool can_be_null = type_can_be_null(field->get_type());
     if (can_be_null) {
       indent(out) << "if (this." << field_name << " == null) {" << endl;
-      indent(out) << "  sb.append(\"null\");" << endl;
+      indent(out) << "  sb.append(\"null\")" << endl;
       indent(out) << "} else {" << endl;
       indent_up();
     }
 
     if (get_true_type(field->get_type())->is_binary())
-      indent(out) << "org.apache.thrift.TBaseHelper.toString(this." << field_name << ", sb);"
+      indent(out) << "org.apache.thrift.TBaseHelper.toString(" << field_name << "!!, sb)"
                   << endl;
     else if ((field->get_type()->is_set())
              && (get_true_type(((t_set *) field->get_type())->get_elem_type())->is_binary())) {
-      indent(out) << "org.apache.thrift.TBaseHelper.toString(this." << field_name << ", sb);"
+      indent(out) << "org.apache.thrift.TBaseHelper.toString(this." << field_name << ", sb)"
                   << endl;
     } else if ((field->get_type()->is_list())
                && (get_true_type(((t_list *) field->get_type())->get_elem_type())->is_binary())) {
-      indent(out) << "org.apache.thrift.TBaseHelper.toString(this." << field_name << ", sb);"
+      indent(out) << "org.apache.thrift.TBaseHelper.toString(this." << field_name << ", sb)"
                   << endl;
     } else {
-      indent(out) << "sb.append(this." << field_name << ");" << endl;
+      indent(out) << "sb.append(this." << field_name << ")" << endl;
     }
 
     if (can_be_null) {
       indent_down();
       indent(out) << "}" << endl;
     }
-    indent(out) << "first = false;" << endl;
+    indent(out) << "first = false" << endl;
 
     if (could_be_unset) {
       indent_down();
@@ -2593,7 +2592,7 @@ void t_kotlin_generator::generate_kotlin_struct_tostring(ostream &out, t_struct 
     }
     first = false;
   }
-  out << indent() << "sb.append(\")\");" << endl << indent() << "return sb.toString();" << endl;
+  out << indent() << "sb.append(\")\");" << endl << indent() << "return sb.toString()" << endl;
 
   indent_down();
   indent(out) << "}" << endl << endl;

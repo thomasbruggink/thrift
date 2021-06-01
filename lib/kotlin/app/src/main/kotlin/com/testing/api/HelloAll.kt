@@ -14,7 +14,8 @@ public class HelloAll(
   private var ChildNode: ChildAll?  = ChildAll(), // required
   private var listString: ArrayList<String>?  = ArrayList<String>(), // required
   private var mapStringString: HashMap<String,String>?  = HashMap<String,String>(), // required
-  private var setString: HashSet<String>?  = HashSet<String>() // required
+  private var setString: HashSet<String>?  = HashSet<String>(), // required
+  private var binData: java.nio.ByteBuffer?  = null // required
 ): org.apache.thrift.TBase<HelloAll, HelloAll._Fields>, java.io.Serializable, Cloneable, Comparable<HelloAll> {
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -28,7 +29,8 @@ public class HelloAll(
     CHILD_NODE(4, "ChildNode"),
     LIST_STRING(5, "listString"),
     MAP_STRING_STRING(6, "mapStringString"),
-    SET_STRING(7, "setString");
+    SET_STRING(7, "setString"),
+    BIN_DATA(8, "binData");
 
     companion object {
       var byName: Map<String, _Fields> = mapOf(
@@ -38,7 +40,8 @@ public class HelloAll(
         "ChildNode" to CHILD_NODE,
         "listString" to LIST_STRING,
         "mapStringString" to MAP_STRING_STRING,
-        "setString" to SET_STRING
+        "setString" to SET_STRING,
+        "binData" to BIN_DATA
       )
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
@@ -59,6 +62,8 @@ public class HelloAll(
             MAP_STRING_STRING
           7 -> // SET_STRING
             SET_STRING
+          8 -> // BIN_DATA
+            BIN_DATA
           else ->
             null
         }
@@ -108,6 +113,9 @@ public class HelloAll(
       val __this__setString:HashSet<String> = HashSet<String>(other.setString)
       this.setString = __this__setString
     }
+    if (other.isSetBinData()) {
+      this.binData = org.apache.thrift.TBaseHelper.copyBinary(other.binData)
+    }
   }
 
   override fun deepCopy(): HelloAll{
@@ -124,6 +132,7 @@ public class HelloAll(
     this.listString?.clear()
     this.mapStringString?.clear()
     this.setString?.clear()
+    this.binData = null
   }
 
   fun getVariable1():String? {
@@ -333,55 +342,100 @@ public class HelloAll(
     }
   }
 
+  fun getBinData():ByteArray? {
+    setBinData(org.apache.thrift.TBaseHelper.rightSize(binData));
+    return binData?.array()
+  }
+
+  fun bufferForBinData():java.nio.ByteBuffer? {
+    return org.apache.thrift.TBaseHelper.copyBinary(binData)
+  }
+
+  fun setBinData(binData: ByteArray?): HelloAll {
+    this.binData = if(binData == null) null   else java.nio.ByteBuffer.wrap(binData.clone())
+    return this
+  }
+
+  fun setBinData(binData: java.nio.ByteBuffer?): HelloAll {
+    this.binData = org.apache.thrift.TBaseHelper.copyBinary(binData)
+    return this
+  }
+
+  fun unsetBinData() {
+    this.binData = null;
+  }
+
+  /** Returns true if field binData is set (has been assigned a value) and false otherwise */
+  fun isSetBinData(): Boolean {
+    return this.binData != null;
+  }
+
+  fun setBinDataIsSet(value: Boolean) {
+    if (!value) {
+      this.binData = null;
+    }
+  }
+
   override fun setFieldValue(field: _Fields,  value: Any?) {
     when (field) {
     _Fields.VARIABLE1 ->
       if (value == null) {
-        unsetVariable1();
+        unsetVariable1()
       } else {
-        setVariable1(value as String);
+        setVariable1(value as String)
       }
 
     _Fields.VARIABLE2 ->
       if (value == null) {
-        unsetVariable2();
+        unsetVariable2()
       } else {
-        setVariable2(value as Int);
+        setVariable2(value as Int)
       }
 
     _Fields.VARIABLE3 ->
       if (value == null) {
-        unsetVariable3();
+        unsetVariable3()
       } else {
-        setVariable3(value as Long);
+        setVariable3(value as Long)
       }
 
     _Fields.CHILD_NODE ->
       if (value == null) {
-        unsetChildNode();
+        unsetChildNode()
       } else {
-        setChildNode(value as ChildAll);
+        setChildNode(value as ChildAll)
       }
 
     _Fields.LIST_STRING ->
       if (value == null) {
-        unsetListString();
+        unsetListString()
       } else {
-        setListString(value as ArrayList<String>);
+        setListString(value as ArrayList<String>)
       }
 
     _Fields.MAP_STRING_STRING ->
       if (value == null) {
-        unsetMapStringString();
+        unsetMapStringString()
       } else {
-        setMapStringString(value as HashMap<String,String>);
+        setMapStringString(value as HashMap<String,String>)
       }
 
     _Fields.SET_STRING ->
       if (value == null) {
-        unsetSetString();
+        unsetSetString()
       } else {
-        setSetString(value as HashSet<String>);
+        setSetString(value as HashSet<String>)
+      }
+
+    _Fields.BIN_DATA ->
+      if (value == null) {
+        unsetBinData()
+      } else {
+        if (value is ByteArray) {
+          setBinData(value)
+        } else {
+          setBinData(value as java.nio.ByteBuffer)
+        }
       }
 
     }
@@ -396,6 +450,7 @@ public class HelloAll(
       _Fields.LIST_STRING -> getListString()
       _Fields.MAP_STRING_STRING -> getMapStringString()
       _Fields.SET_STRING -> getSetString()
+      _Fields.BIN_DATA -> getBinData()
     }
   }
 
@@ -409,6 +464,7 @@ public class HelloAll(
       _Fields.LIST_STRING->isSetListString()
       _Fields.MAP_STRING_STRING->isSetMapStringString()
       _Fields.SET_STRING->isSetSetString()
+      _Fields.BIN_DATA->isSetBinData()
     }
   }
 
@@ -487,6 +543,15 @@ public class HelloAll(
         return false;
     }
 
+    val this_present_binData: Boolean = true && this.isSetBinData()
+    val other_present_binData: Boolean = true && other.isSetBinData()
+    if (this_present_binData || other_present_binData) {
+      if (!(this_present_binData && other_present_binData))
+        return false;
+      if (!this.binData!!.equals(other.binData))
+        return false;
+    }
+
     return true;
   }
 
@@ -516,6 +581,10 @@ public class HelloAll(
     hashCode = hashCode * 8191 + (if(isSetSetString()) 131071 else 524287)
     if (isSetSetString())
       hashCode = hashCode * 8191 + setString.hashCode();
+
+    hashCode = hashCode * 8191 + (if(isSetBinData()) 131071 else 524287)
+    if (isSetBinData())
+      hashCode = hashCode * 8191 + binData.hashCode()
 
     return hashCode;
   }
@@ -597,6 +666,16 @@ public class HelloAll(
         return lastComparison;
       }
     }
+    lastComparison = java.lang.Boolean.compare(isSetBinData(), other.isSetBinData());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetBinData()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.binData, other.binData);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -613,58 +692,66 @@ public class HelloAll(
   }
 
   override fun toString():String {
-    val sb:java.lang.StringBuilder = java.lang.StringBuilder("HelloAll(");
+    val sb:java.lang.StringBuilder = java.lang.StringBuilder("HelloAll(")
     var first:Boolean = true
 
-    sb.append("Variable1:");
+    sb.append("Variable1:")
     if (this.Variable1 == null) {
-      sb.append("null");
+      sb.append("null")
     } else {
-      sb.append(this.Variable1);
+      sb.append(this.Variable1)
     }
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("Variable2:");
-    sb.append(this.Variable2);
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("Variable3:");
-    sb.append(this.Variable3);
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("ChildNode:");
+    first = false
+    if (!first) sb.append(", ")
+    sb.append("Variable2:")
+    sb.append(this.Variable2)
+    first = false
+    if (!first) sb.append(", ")
+    sb.append("Variable3:")
+    sb.append(this.Variable3)
+    first = false
+    if (!first) sb.append(", ")
+    sb.append("ChildNode:")
     if (this.ChildNode == null) {
-      sb.append("null");
+      sb.append("null")
     } else {
-      sb.append(this.ChildNode);
+      sb.append(this.ChildNode)
     }
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("listString:");
+    first = false
+    if (!first) sb.append(", ")
+    sb.append("listString:")
     if (this.listString == null) {
-      sb.append("null");
+      sb.append("null")
     } else {
-      sb.append(this.listString);
+      sb.append(this.listString)
     }
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("mapStringString:");
+    first = false
+    if (!first) sb.append(", ")
+    sb.append("mapStringString:")
     if (this.mapStringString == null) {
-      sb.append("null");
+      sb.append("null")
     } else {
-      sb.append(this.mapStringString);
+      sb.append(this.mapStringString)
     }
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("setString:");
+    first = false
+    if (!first) sb.append(", ")
+    sb.append("setString:")
     if (this.setString == null) {
-      sb.append("null");
+      sb.append("null")
     } else {
-      sb.append(this.setString);
+      sb.append(this.setString)
     }
-    first = false;
+    first = false
+    if (!first) sb.append(", ")
+    sb.append("binData:")
+    if (this.binData == null) {
+      sb.append("null")
+    } else {
+      org.apache.thrift.TBaseHelper.toString(binData!!, sb)
+    }
+    first = false
     sb.append(")");
-    return sb.toString();
+    return sb.toString()
   }
 
   fun validate() {
@@ -785,6 +872,13 @@ public class HelloAll(
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
+          8 -> // BIN_DATA
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.binData = iprot.readBinary()
+              struct.setBinDataIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
           else ->
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -847,6 +941,11 @@ public class HelloAll(
         oprot.writeSetEnd()
         oprot.writeFieldEnd()
       }
+      if (struct.binData != null) {
+        oprot.writeFieldBegin(BIN_DATA_FIELD_DESC)
+        oprot.writeBinary(struct.binData)
+        oprot.writeFieldEnd()
+      }
       oprot.writeFieldStop()
       oprot.writeStructEnd()
     }
@@ -885,7 +984,10 @@ public class HelloAll(
       if (struct.isSetSetString()) {
         optionals.set(6)
       }
-      prot.writeBitSet(optionals, 7)
+      if (struct.isSetBinData()) {
+        optionals.set(7)
+      }
+      prot.writeBitSet(optionals, 8)
       if (struct.isSetVariable1()) {
         oprot.writeString(struct.Variable1)
       }
@@ -920,11 +1022,14 @@ public class HelloAll(
           oprot.writeString(_iter15)
         }
       }
+      if (struct.isSetBinData()) {
+        oprot.writeBinary(struct.binData)
+      }
     }
 
     override fun read(iprot: org.apache.thrift.protocol.TProtocol, struct:HelloAll) {
       val prot:org.apache.thrift.protocol.TTupleProtocol = iprot as org.apache.thrift.protocol.TTupleProtocol
-      val incoming:java.util.BitSet = prot.readBitSet(7)
+      val incoming:java.util.BitSet = prot.readBitSet(8)
       if (incoming.get(0)) {
         struct.Variable1 = iprot.readString()
         struct.setVariable1IsSet(true)
@@ -977,6 +1082,10 @@ public class HelloAll(
         }
         struct.setSetStringIsSet(true)
       }
+      if (incoming.get(7)) {
+        struct.binData = iprot.readBinary()
+        struct.setBinDataIsSet(true)
+      }
     }
   }
 
@@ -991,6 +1100,7 @@ public class HelloAll(
     private val LIST_STRING_FIELD_DESC: org.apache.thrift.protocol.TField = org.apache.thrift.protocol.TField("listString", org.apache.thrift.protocol.TType.LIST, 5.toShort());
     private val MAP_STRING_STRING_FIELD_DESC: org.apache.thrift.protocol.TField = org.apache.thrift.protocol.TField("mapStringString", org.apache.thrift.protocol.TType.MAP, 6.toShort());
     private val SET_STRING_FIELD_DESC: org.apache.thrift.protocol.TField = org.apache.thrift.protocol.TField("setString", org.apache.thrift.protocol.TType.SET, 7.toShort());
+    private val BIN_DATA_FIELD_DESC: org.apache.thrift.protocol.TField = org.apache.thrift.protocol.TField("binData", org.apache.thrift.protocol.TType.STRING, 8.toShort());
 
     private val STANDARD_SCHEME_FACTORY: org.apache.thrift.scheme.SchemeFactory<HelloAllStandardScheme> = HelloAllStandardSchemeFactory()
     private val TUPLE_SCHEME_FACTORY: org.apache.thrift.scheme.SchemeFactory<HelloAllTupleScheme> = HelloAllTupleSchemeFactory()
@@ -1015,7 +1125,9 @@ public class HelloAll(
               org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))),
       _Fields.SET_STRING to org.apache.thrift.meta_data.FieldMetaData("setString", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
-              org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))))
+              org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))),
+      _Fields.BIN_DATA to org.apache.thrift.meta_data.FieldMetaData("binData", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)))
     init {
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(HelloAll::class.java, metaDataMap)
     }

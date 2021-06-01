@@ -150,16 +150,16 @@ public class Error(
     when (field) {
     _Fields.ERROR_CODE ->
       if (value == null) {
-        unsetErrorCode();
+        unsetErrorCode()
       } else {
-        setErrorCode(value as ErrorCodes);
+        setErrorCode(value as ErrorCodes)
       }
 
     _Fields.REASON ->
       if (value == null) {
-        unsetReason();
+        unsetReason()
       } else {
-        setReason(value as String);
+        setReason(value as String)
       }
 
     }
@@ -270,26 +270,26 @@ public class Error(
   }
 
   override fun toString():String {
-    val sb:java.lang.StringBuilder = java.lang.StringBuilder("Error(");
+    val sb:java.lang.StringBuilder = java.lang.StringBuilder("Error(")
     var first:Boolean = true
 
-    sb.append("errorCode:");
+    sb.append("errorCode:")
     if (this.errorCode == null) {
-      sb.append("null");
+      sb.append("null")
     } else {
-      sb.append(this.errorCode);
+      sb.append(this.errorCode)
     }
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("reason:");
+    first = false
+    if (!first) sb.append(", ")
+    sb.append("reason:")
     if (this.reason == null) {
-      sb.append("null");
+      sb.append("null")
     } else {
-      sb.append(this.reason);
+      sb.append(this.reason)
     }
-    first = false;
+    first = false
     sb.append(")");
-    return sb.toString();
+    return sb.toString()
   }
 
   fun validate() {
