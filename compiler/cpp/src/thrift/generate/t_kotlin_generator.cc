@@ -101,6 +101,8 @@ public:
 
     std::string render_const_value(std::ostream &out, t_type *type, t_const_value *value);
 
+    void generate_private_variables(std::ostream &out, t_struct *tstruct);
+
     /**
      * Service-level generation functions
      */
@@ -195,7 +197,9 @@ public:
 
     void generate_kotlin_union(t_struct *tstruct);
 
-    void generate_union_constructor(ostream &out, t_struct *tstruct);
+    void generate_constructor(ostream &out, t_struct *tstruct);
+
+    void generate_union_constructor(ostream& out, t_struct* tstruct);
 
     void generate_union_getters_and_setters(ostream &out, t_struct *tstruct);
 
@@ -289,8 +293,8 @@ public:
 
     void generate_serialize_map_element(std::ostream &out,
                                         t_map *tmap,
-                                        const std::string& iter,
-                                        const std::string& map,
+                                        const std::string &iter,
+                                        const std::string &map,
                                         bool has_metadata = true);
 
     void generate_serialize_set_element(std::ostream &out,
@@ -801,6 +805,21 @@ void t_kotlin_generator::generate_xception(t_struct *txception) {
 }
 
 /**
+ * Writes all members as private variables.
+ *
+ * @param out stream
+ */
+void t_kotlin_generator::generate_private_variables(std::ostream &out, t_struct *tstruct) {
+  const vector<t_field *> &members = tstruct->get_members();
+  vector<t_field *>::const_iterator m_iter;
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    generate_java_doc(out, *m_iter);
+    indent(out) << "private var " <<
+                declare_field(*m_iter, true, m_iter + 1 == members.end()) << endl;
+  }
+}
+
+/**
  * kotlin struct definition.
  *
  * @param tstruct The struct definition
@@ -824,6 +843,8 @@ void t_kotlin_generator::generate_kotlin_struct(t_struct *tstruct, bool is_excep
  * @param tstruct The struct definition
  */
 void t_kotlin_generator::generate_kotlin_union(t_struct *tstruct) {
+  ostringstream companion_out;
+
   // Make output file
   string f_struct_name = package_dir_ + "/" + make_valid_kotlin_filename(tstruct->get_name())
                          + ".kt";
@@ -842,27 +863,38 @@ void t_kotlin_generator::generate_kotlin_union(t_struct *tstruct) {
   if (is_deprecated) {
     indent(f_struct) << "@Deprecated" << endl;
   }
-  indent(f_struct) << "public " << (is_final ? "final " : "") << "class " << tstruct->get_name()
-                   << " extends org.apache.thrift.TUnion<" << tstruct->get_name() << ", "
-                   << tstruct->get_name() << "._Fields> ";
-
+  indent(f_struct) << "public " << (is_final ? "final " : "") << "class " << tstruct->get_name() << "()"
+                   << " : org.apache.thrift.TUnion<" << tstruct->get_name() << ", "
+                   << tstruct->get_name() << ".Fields>() ";
   scope_up(f_struct);
 
-  f_struct << "companion object ";
-  scope_up(f_struct);
-  generate_struct_desc(f_struct, tstruct);
-  generate_field_descs(f_struct, tstruct);
+  // Copy constructor
+  indent(f_struct) << "constructor(other: " << tstruct->get_name() << "): this() {" << endl;
+  indent_up();
+  indent(f_struct) << "fromDeepCopy(other)" << endl;
   scope_down(f_struct);
 
-  f_struct << endl;
+  // clone method, so that you can deep copy an object when you don't know its class.
+  indent(f_struct) << "override fun deepCopy(): " << tstruct->get_name() << "{" << endl;
+  indent(f_struct) << "  return " << tstruct->get_name() << "(this)" << endl;
+  indent(f_struct) << "}" << endl << endl;
 
-  generate_field_name_constants(f_struct, tstruct);
+  companion_out << "companion object ";
+  scope_up(companion_out);
+  generate_struct_desc(companion_out, tstruct);
+  generate_field_descs(companion_out, tstruct);
+  generate_union_constructor(companion_out, tstruct);
+  scope_down(companion_out);
 
-  f_struct << endl;
+  companion_out << endl;
 
+  generate_field_name_constants(companion_out, tstruct);
+
+  companion_out << endl;
+
+  indent_down();
   generate_kotlin_meta_data_map(f_struct, tstruct);
-
-  generate_union_constructor(f_struct, tstruct);
+  indent_up();
 
   f_struct << endl;
 
@@ -898,630 +930,16 @@ void t_kotlin_generator::generate_kotlin_union(t_struct *tstruct) {
 
   f_struct << endl;
 
+  indent(f_struct) << companion_out.str() << endl;
+
   scope_down(f_struct);
 
   f_struct.close();
 }
 
-void t_kotlin_generator::generate_union_constructor(ostream &out, t_struct *tstruct) {
+void t_kotlin_generator::generate_constructor(ostream &out, t_struct *tstruct) {
   const vector<t_field *> &members = tstruct->get_members();
   vector<t_field *>::const_iterator m_iter;
-
-  indent(out) << "public " << type_name(tstruct) << "() {" << endl;
-  indent_up();
-  bool default_value = false;
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    t_type *type = get_true_type((*m_iter)->get_type());
-    if ((*m_iter)->get_value() != nullptr) {
-      indent(out) << "super(_Fields." << constant_name((*m_iter)->get_name()) << ", "
-                  << render_const_value(out, type, (*m_iter)->get_value()) << ");" << endl;
-      default_value = true;
-      break;
-    }
-  }
-  if (!default_value) {
-    indent(out) << "super()" << endl;
-  }
-  indent_down();
-  indent(out) << "}" << endl << endl;
-
-  indent(out) << "public " << type_name(tstruct) << "(_Fields setField, kotlin.lang.Object value) {" << endl;
-  indent(out) << "  super(setField, value)" << endl;
-  indent(out) << "}" << endl << endl;
-
-  indent(out) << "public " << type_name(tstruct) << "(" << type_name(tstruct) << " other) {"
-              << endl;
-  indent(out) << "  super(other)" << endl;
-  indent(out) << "}" << endl;
-
-  indent(out) << "public " << tstruct->get_name() << " deepCopy() {" << endl;
-  indent(out) << "  return " << tstruct->get_name() << "(this)" << endl;
-  indent(out) << "}" << endl << endl;
-
-  // generate "constructors" for each field
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    t_type *type = (*m_iter)->get_type();
-    indent(out) << "public static " << type_name(tstruct) << " " << (*m_iter)->get_name() << "("
-                << type_name(type) << " value) {" << endl;
-    indent(out) << "  " << type_name(tstruct) << " x = " << type_name(tstruct) << "()" << endl;
-    indent(out) << "  x.set" << get_cap_name((*m_iter)->get_name()) << "(value)" << endl;
-    indent(out) << "  return x" << endl;
-    indent(out) << "}" << endl << endl;
-
-    if (type->is_binary()) {
-      indent(out) << "public static " << type_name(tstruct) << " " << (*m_iter)->get_name()
-                  << "(byte[] value) {" << endl;
-      indent(out) << "  " << type_name(tstruct) << " x = " << type_name(tstruct) << "()"
-                  << endl;
-      indent(out) << "  x.set" << get_cap_name((*m_iter)->get_name());
-      indent(out) << "(java.nio.ByteBuffer.wrap(value.clone()))" << endl;
-      indent(out) << "  return x" << endl;
-      indent(out) << "}" << endl << endl;
-    }
-  }
-}
-
-void t_kotlin_generator::generate_union_getters_and_setters(ostream &out, t_struct *tstruct) {
-  const vector<t_field *> &members = tstruct->get_members();
-  vector<t_field *>::const_iterator m_iter;
-
-  bool first = true;
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    if (first) {
-      first = false;
-    } else {
-      out << endl;
-    }
-
-    t_field *field = (*m_iter);
-    t_type *type = field->get_type();
-    std::string cap_name = get_cap_name(field->get_name());
-    bool is_deprecated = this->is_deprecated(field->annotations_);
-
-    generate_java_doc(out, field);
-    if (type->is_binary()) {
-      if (is_deprecated) {
-        indent(out) << "@Deprecated" << endl;
-      }
-      indent(out) << "public byte[] get" << cap_name << "() {" << endl;
-      indent(out) << "  set" << cap_name << "(org.apache.thrift.TBaseHelper.rightSize(buffer"
-                  << get_cap_name("for") << cap_name << "()));" << endl;
-      indent(out) << "  kotlin.nio.ByteBuffer b = buffer" << get_cap_name("for") << cap_name << "();" << endl;
-      indent(out) << "  return b == null ? null : b.array();" << endl;
-      indent(out) << "}" << endl;
-
-      out << endl;
-
-      indent(out) << "public kotlin.nio.ByteBuffer buffer" << get_cap_name("for")
-                  << get_cap_name(field->get_name()) << "() {" << endl;
-      indent(out) << "  if (getSetField() == _Fields." << constant_name(field->get_name()) << ") {"
-                  << endl;
-
-      indent(out)
-              << "    return org.apache.thrift.TBaseHelper.copyBinary((kotlin.nio.ByteBuffer)getFieldValue());"
-              << endl;
-
-      indent(out) << "  } else {" << endl;
-      indent(out) << "    throw java.lang.RuntimeException(\"Cannot get field '" << field->get_name()
-                  << "' because union is currently set to \" + getFieldDesc(getSetField()).name);"
-                  << endl;
-      indent(out) << "  }" << endl;
-      indent(out) << "}" << endl;
-    } else {
-      if (is_deprecated) {
-        indent(out) << "@Deprecated" << endl;
-      }
-      indent(out) << "public " << type_name(field->get_type()) << " get"
-                  << get_cap_name(field->get_name()) << "() {" << endl;
-      indent(out) << "  if (getSetField() == _Fields." << constant_name(field->get_name()) << ") {"
-                  << endl;
-      indent(out) << "    return (" << type_name(field->get_type(), true) << ")getFieldValue();"
-                  << endl;
-      indent(out) << "  } else {" << endl;
-      indent(out) << "    throw java.lang.RuntimeException(\"Cannot get field '" << field->get_name()
-                  << "' because union is currently set to \" + getFieldDesc(getSetField()).name);"
-                  << endl;
-      indent(out) << "  }" << endl;
-      indent(out) << "}" << endl;
-    }
-
-    out << endl;
-
-    generate_java_doc(out, field);
-    if (type->is_binary()) {
-      if (is_deprecated) {
-        indent(out) << "@Deprecated" << endl;
-      }
-      indent(out) << "public void set" << get_cap_name(field->get_name()) << "(byte[] value) {"
-                  << endl;
-      indent(out) << "  set" << get_cap_name(field->get_name());
-
-      indent(out) << "(kotlin.nio.ByteBuffer.wrap(value.clone()));" << endl;
-
-      indent(out) << "}" << endl;
-
-      out << endl;
-    }
-    if (is_deprecated) {
-      indent(out) << "@Deprecated" << endl;
-    }
-    indent(out) << "public void set" << get_cap_name(field->get_name()) << "("
-                << type_name(field->get_type()) << " value) {" << endl;
-
-    indent(out) << "  setField_ = _Fields." << constant_name(field->get_name()) << ";" << endl;
-
-    if (type_can_be_null(field->get_type())) {
-      indent(out) << "  value_ = kotlin.util.Objects.requireNonNull(value,\"" << "_Fields."
-                  << constant_name(field->get_name()) << "\");" << endl;
-    } else {
-      indent(out) << "  value_ = value;" << endl;
-    }
-
-    indent(out) << "}" << endl;
-  }
-}
-
-void t_kotlin_generator::generate_union_is_set_methods(ostream &out, t_struct *tstruct) {
-  const vector<t_field *> &members = tstruct->get_members();
-  vector<t_field *>::const_iterator m_iter;
-
-  bool first = true;
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    if (first) {
-      first = false;
-    } else {
-      out << endl;
-    }
-
-    std::string field_name = (*m_iter)->get_name();
-
-    indent(out) << "public boolean is" << get_cap_name("set") << get_cap_name(field_name) << "() {"
-                << endl;
-    indent_up();
-    indent(out) << "return setField_ == _Fields." << constant_name(field_name) << ";" << endl;
-    indent_down();
-    indent(out) << "}" << endl << endl;
-  }
-}
-
-void t_kotlin_generator::generate_union_abstract_methods(ostream &out, t_struct *tstruct) {
-  generate_check_type(out, tstruct);
-  out << endl;
-  generate_standard_scheme_read_value(out, tstruct);
-  out << endl;
-  generate_standard_scheme_write_value(out, tstruct);
-  out << endl;
-  generate_tuple_scheme_read_value(out, tstruct);
-  out << endl;
-  generate_tuple_scheme_write_value(out, tstruct);
-  out << endl;
-  generate_get_field_desc(out, tstruct);
-  out << endl;
-  generate_get_struct_desc(out, tstruct);
-  out << endl;
-  indent(out) << "@Override" << endl;
-  indent(out) << "protected _Fields enumForId(short id) {" << endl;
-  indent(out) << "  return _Fields.findByThriftIdOrThrow(id);" << endl;
-  indent(out) << "}" << endl;
-}
-
-void t_kotlin_generator::generate_check_type(ostream &out, t_struct *tstruct) {
-  indent(out) << "@Override" << endl;
-  indent(out)
-          << "protected void checkType(_Fields setField, kotlin.lang.Object value) throws kotlin.lang.ClassCastException {"
-          << endl;
-  indent_up();
-
-  indent(out) << "switch (setField) {" << endl;
-  indent_up();
-
-  const vector<t_field *> &members = tstruct->get_members();
-  vector<t_field *>::const_iterator m_iter;
-
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    t_field *field = (*m_iter);
-
-    indent(out) << "case " << constant_name(field->get_name()) << ":" << endl;
-    indent(out) << "  if (value is " << type_name(field->get_type(), true, false, true)
-                << ") {" << endl;
-    indent(out) << "    break;" << endl;
-    indent(out) << "  }" << endl;
-    indent(out) << "  throw java.lang.ClassCastException(\"Was expecting value of type "
-                << type_name(field->get_type(), true, false) << " for field '" << field->get_name()
-                << "', but got \" + value.getClass().getSimpleName());" << endl;
-    // do the real check here
-  }
-
-  indent(out) << "default:" << endl;
-  indent(out) << "  throw java.lang.IllegalArgumentException(\"Unknown field id \" + setField);" << endl;
-
-  indent_down();
-  indent(out) << "}" << endl;
-
-  indent_down();
-  indent(out) << "}" << endl;
-}
-
-void t_kotlin_generator::generate_standard_scheme_read_value(ostream &out, t_struct *tstruct) {
-  indent(out) << "@Override" << endl;
-  indent(out) << "protected java.lang.Object standardSchemeReadValue( "
-              << "iprot: org.apache.thrift.protocol.TProtocol, field: org.apache.thrift.protocol.TField) throws "
-                 "org.apache.thrift.TException {" << endl;
-
-  indent_up();
-
-  indent(out) << "_Fields setField = _Fields.findByThriftId(field.id);" << endl;
-  indent(out) << "if (setField != null) {" << endl;
-  indent_up();
-  indent(out) << "switch (setField) {" << endl;
-  indent_up();
-
-  const vector<t_field *> &members = tstruct->get_members();
-  vector<t_field *>::const_iterator m_iter;
-
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    t_field *field = (*m_iter);
-
-    indent(out) << "case " << constant_name(field->get_name()) << ":" << endl;
-    indent_up();
-    indent(out) << "if (field.type == " << constant_name(field->get_name()) << "_FIELD_DESC.type) {"
-                << endl;
-    indent_up();
-    indent(out) << type_name(field->get_type(), true, false) << " " << field->get_name() << ";"
-                << endl;
-    generate_deserialize_field(out, field, "");
-    indent(out) << "return " << field->get_name() << ";" << endl;
-    indent_down();
-    indent(out) << "} else {" << endl;
-    indent(out) << "  org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);" << endl;
-    indent(out) << "  return null;" << endl;
-    indent(out) << "}" << endl;
-    indent_down();
-  }
-
-  indent(out) << "default:" << endl;
-  indent(out) << "  throw java.lang.IllegalStateException(\"setField wasn't null, but didn't match any "
-                 "of the case statements!\");" << endl;
-
-  indent_down();
-  indent(out) << "}" << endl;
-
-  indent_down();
-  indent(out) << "} else {" << endl;
-  indent_up();
-  indent(out) << "org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);" << endl;
-  indent(out) << "return null;" << endl;
-  indent_down();
-  indent(out) << "}" << endl;
-
-  indent_down();
-  indent(out) << "}" << endl;
-}
-
-void t_kotlin_generator::generate_standard_scheme_write_value(ostream &out, t_struct *tstruct) {
-  indent(out) << "@Override" << endl;
-  indent(out) << "protected void standardSchemeWriteValue(org.apache.thrift.protocol.TProtocol "
-                 "oprot) throws org.apache.thrift.TException {" << endl;
-
-  indent_up();
-
-  indent(out) << "switch (setField_) {" << endl;
-  indent_up();
-
-  const vector<t_field *> &members = tstruct->get_members();
-  vector<t_field *>::const_iterator m_iter;
-
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    t_field *field = (*m_iter);
-
-    indent(out) << "case " << constant_name(field->get_name()) << ":" << endl;
-    indent_up();
-    indent(out) << type_name(field->get_type(), true, false) << " " << field->get_name() << " = ("
-                << type_name(field->get_type(), true, false) << ")value_;" << endl;
-    generate_serialize_field(out, field, "");
-    indent(out) << "return;" << endl;
-    indent_down();
-  }
-
-  indent(out) << "default:" << endl;
-  indent(out) << "  throw java.lang.IllegalStateException(\"Cannot write union with unknown field \" + "
-                 "setField_);" << endl;
-
-  indent_down();
-  indent(out) << "}" << endl;
-
-  indent_down();
-
-  indent(out) << "}" << endl;
-}
-
-void t_kotlin_generator::generate_tuple_scheme_read_value(ostream &out, t_struct *tstruct) {
-  indent(out) << "@Override" << endl;
-  indent(out) << "protected kotlin.lang.Object tupleSchemeReadValue(org.apache.thrift.protocol.TProtocol "
-                 "iprot, short fieldID) throws org.apache.thrift.TException {" << endl;
-
-  indent_up();
-
-  indent(out) << "_Fields setField = _Fields.findByThriftId(fieldID);" << endl;
-  indent(out) << "if (setField != null) {" << endl;
-  indent_up();
-  indent(out) << "switch (setField) {" << endl;
-  indent_up();
-
-  const vector<t_field *> &members = tstruct->get_members();
-  vector<t_field *>::const_iterator m_iter;
-
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    t_field *field = (*m_iter);
-
-    indent(out) << "case " << constant_name(field->get_name()) << ":" << endl;
-    indent_up();
-    indent(out) << type_name(field->get_type(), true, false) << " " << field->get_name() << ";"
-                << endl;
-    generate_deserialize_field(out, field, "");
-    indent(out) << "return " << field->get_name() << ";" << endl;
-    indent_down();
-  }
-
-  indent(out) << "default:" << endl;
-  indent(out) << "  throw java.lang.IllegalStateException(\"setField wasn't null, but didn't match any "
-                 "of the case statements!\");" << endl;
-
-  indent_down();
-  indent(out) << "}" << endl;
-
-  indent_down();
-  indent(out) << "} else {" << endl;
-  indent_up();
-  indent(out)
-          << "throw org.apache.thrift.protocol.TProtocolException(\"Couldn't find a field with field id \" + fieldID);"
-          << endl;
-  indent_down();
-  indent(out) << "}" << endl;
-  indent_down();
-  indent(out) << "}" << endl;
-}
-
-void t_kotlin_generator::generate_tuple_scheme_write_value(ostream &out, t_struct *tstruct) {
-  indent(out) << "@Override" << endl;
-  indent(out) << "protected void tupleSchemeWriteValue(org.apache.thrift.protocol.TProtocol oprot) "
-                 "throws org.apache.thrift.TException {" << endl;
-
-  indent_up();
-
-  indent(out) << "switch (setField_) {" << endl;
-  indent_up();
-
-  const vector<t_field *> &members = tstruct->get_members();
-  vector<t_field *>::const_iterator m_iter;
-
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    t_field *field = (*m_iter);
-
-    indent(out) << "case " << constant_name(field->get_name()) << ":" << endl;
-    indent_up();
-    indent(out) << type_name(field->get_type(), true, false) << " " << field->get_name() << " = ("
-                << type_name(field->get_type(), true, false) << ")value_;" << endl;
-    generate_serialize_field(out, field, "");
-    indent(out) << "return;" << endl;
-    indent_down();
-  }
-
-  indent(out) << "default:" << endl;
-  indent(out) << "  throw java.lang.IllegalStateException(\"Cannot write union with unknown field \" + "
-                 "setField_);" << endl;
-
-  indent_down();
-  indent(out) << "}" << endl;
-
-  indent_down();
-
-  indent(out) << "}" << endl;
-}
-
-void t_kotlin_generator::generate_get_field_desc(ostream &out, t_struct *tstruct) {
-  indent(out) << "@Override" << endl;
-  indent(out) << "protected org.apache.thrift.protocol.TField getFieldDesc(_Fields setField) {"
-              << endl;
-  indent_up();
-
-  const vector<t_field *> &members = tstruct->get_members();
-  vector<t_field *>::const_iterator m_iter;
-
-  indent(out) << "switch (setField) {" << endl;
-  indent_up();
-
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    t_field *field = (*m_iter);
-    indent(out) << "case " << constant_name(field->get_name()) << ":" << endl;
-    indent(out) << "  return " << constant_name(field->get_name()) << "_FIELD_DESC;" << endl;
-  }
-
-  indent(out) << "default:" << endl;
-  indent(out) << "  throw java.lang.IllegalArgumentException(\"Unknown field id \" + setField);" << endl;
-
-  indent_down();
-  indent(out) << "}" << endl;
-
-  indent_down();
-  indent(out) << "}" << endl;
-}
-
-void t_kotlin_generator::generate_get_struct_desc(ostream &out, t_struct *tstruct) {
-  (void) tstruct;
-  indent(out) << "@Override" << endl;
-  indent(out) << "protected org.apache.thrift.protocol.TStruct getStructDesc() {" << endl;
-  indent(out) << "  return STRUCT_DESC;" << endl;
-  indent(out) << "}" << endl;
-}
-
-void t_kotlin_generator::generate_union_comparisons(ostream &out, t_struct *tstruct) {
-  // equality
-  indent(out) << "public boolean equals(kotlin.lang.Object other) {" << endl;
-  indent(out) << "  if (other instanceof " << tstruct->get_name() << ") {" << endl;
-  indent(out) << "    return equals((" << tstruct->get_name() << ")other);" << endl;
-  indent(out) << "  } else {" << endl;
-  indent(out) << "    return false;" << endl;
-  indent(out) << "  }" << endl;
-  indent(out) << "}" << endl;
-
-  out << endl;
-
-  indent(out) << "public boolean equals(" << tstruct->get_name() << " other) {" << endl;
-  indent(out) << "  return other != null && getSetField() == other.getSetField() && "
-                 "getFieldValue().equals(other.getFieldValue());" << endl;
-  indent(out) << "}" << endl;
-  out << endl;
-
-  indent(out) << "@Override" << endl;
-  indent(out) << "public int compareTo(" << type_name(tstruct) << " other) {" << endl;
-  indent(out) << "  int lastComparison = org.apache.thrift.TBaseHelper.compareTo(getSetField(), "
-                 "other.getSetField());" << endl;
-  indent(out) << "  if (lastComparison == 0) {" << endl;
-  indent(out) << "    return org.apache.thrift.TBaseHelper.compareTo(getFieldValue(), "
-                 "other.getFieldValue());" << endl;
-  indent(out) << "  }" << endl;
-  indent(out) << "  return lastComparison;" << endl;
-  indent(out) << "}" << endl;
-  out << endl;
-}
-
-void t_kotlin_generator::generate_union_hashcode(ostream &out, t_struct *tstruct) {
-  (void) tstruct;
-  indent(out) << "@Override" << endl;
-  indent(out) << "public int hashCode() {" << endl;
-  indent(out) << "  val list:java.util.List<Any> = java.util.ArrayList<Any>()"
-              << endl;
-  indent(out) << "  list.add(this.getClass().getName());" << endl;
-  indent(out) << "  val setField: org.apache.thrift.TFieldIdEnum = getSetField()" << endl;
-  indent(out) << "  if (setField != null) {" << endl;
-  indent(out) << "    list.add(setField.getThriftFieldId());" << endl;
-  indent(out) << "    val value: Any = getFieldValue()" << endl;
-  indent(out) << "    if (value instanceof org.apache.thrift.TEnum) {" << endl;
-  indent(out) << "      list.add(((org.apache.thrift.TEnum)getFieldValue()).getValue())" << endl;
-  indent(out) << "    } else {" << endl;
-  indent(out) << "      list.add(value);" << endl;
-  indent(out) << "    }" << endl;
-  indent(out) << "  }" << endl;
-  indent(out) << "  return list.hashCode();" << endl;
-  indent(out) << "}";
-}
-
-/**
- * kotlin struct definition. This has various parameters, as it could be
- * generated standalone or inside another class as a helper. If it
- * is a helper than it is a static class.
- *
- * @param tstruct      The struct definition
- * @param is_exception Is this an exception?
- * @param in_class     If inside a class, needs to be static class
- * @param is_result    If this is a result it needs a different writer
- */
-void t_kotlin_generator::generate_kotlin_struct_definition(ostream &out,
-                                                           t_struct *tstruct,
-                                                           bool is_exception,
-                                                           bool in_class,
-                                                           bool is_result) {
-  generate_java_doc(out, tstruct);
-  ostringstream companion_out;
-
-  bool is_const = (tstruct->annotations_.find("const") != tstruct->annotations_.end());
-  bool is_deprecated = this->is_deprecated(tstruct->annotations_);
-
-  if (!in_class) {
-    generate_java_generated_annotation(out);
-  }
-
-  if (is_deprecated) {
-    indent(out) << "@Deprecated" << endl;
-  }
-  indent(out) << (is_const ? "public " : "public ") << (in_class ? "static " : "") << "class "
-              << tstruct->get_name() << "( " << endl;
-
-  // Members are public
-  indent_up();
-  const vector<t_field *> &members = tstruct->get_members();
-  vector<t_field *>::const_iterator m_iter;
-  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    generate_java_doc(out, *m_iter);
-    indent(out) << "private var " <<
-                declare_field(*m_iter, true, m_iter + 1 == members.end()) << endl;
-  }
-  indent_down();
-  out << ")";
-  if (is_exception) {
-    out << ": org.apache.thrift.TException(), ";
-  } else {
-    out << ":";
-  }
-  out << " org.apache.thrift.TBase<" << tstruct->get_name() << ", " << tstruct->get_name()
-      << "._Fields>, java.io.Serializable, Cloneable, Comparable<" << tstruct->get_name() << ">";
-
-  out << " ";
-
-  scope_up(out);
-
-  indent(companion_out) << "companion object {" << endl;
-  indent_up();
-  generate_struct_desc(companion_out, tstruct);
-
-  companion_out << endl;
-
-  generate_field_descs(companion_out, tstruct);
-
-  companion_out << endl;
-
-  generate_scheme_map(companion_out, tstruct);
-  indent_down();
-
-  out << endl;
-
-  generate_field_name_constants(out, tstruct);
-
-  // isset data
-  if (!members.empty()) {
-    out << endl;
-
-    indent_up();
-    indent(companion_out) << "// isset id assignments" << endl;
-
-    int i = 0;
-    int optionals = 0;
-    for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-      if ((*m_iter)->get_req() == t_field::T_OPTIONAL) {
-        optionals++;
-      }
-      if (!type_can_be_null((*m_iter)->get_type())) {
-        indent(companion_out) << "private val " << isset_field_id(*m_iter) << ": Int = " << i << endl;
-        i++;
-      }
-    }
-    indent_down();
-
-    std::string primitiveType;
-    switch (needs_isset(tstruct, &primitiveType)) {
-      case ISSET_NONE:
-        break;
-      case ISSET_PRIMITIVE:
-        indent(out) << "private var " << " __isset_bitfield: " << primitiveType << " = 0" << endl;
-        break;
-      case ISSET_BITSET:
-        indent(out) << "private var __isset_bit_vector: java.util.BitSet = java.util.BitSet(" << i << ")" << endl;
-        break;
-    }
-
-    if (optionals > 0) {
-      std::string output_string = "private val optionals: _Fields[] = {";
-      for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-        if ((*m_iter)->get_req() == t_field::T_OPTIONAL) {
-          output_string += "_Fields." + constant_name((*m_iter)->get_name()) + ",";
-        }
-      }
-      indent(out) << output_string.substr(0, output_string.length() - 1) << "};" << endl;
-    }
-  }
-
-  generate_kotlin_meta_data_map(companion_out, tstruct);
 
   bool all_optional_members = true;
 
@@ -1562,6 +980,582 @@ void t_kotlin_generator::generate_kotlin_struct_definition(ostream &out,
     indent_down();
     indent(out) << "}" << endl << endl;
   }
+}
+
+void t_kotlin_generator::generate_union_constructor(ostream& out, t_struct* tstruct) {
+  const vector<t_field*>& members = tstruct->get_members();
+  vector<t_field*>::const_iterator m_iter;
+
+  // generate "constructors" for each field
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    t_type* type = (*m_iter)->get_type();
+    indent(out) << "fun " << (*m_iter)->get_name() << "("
+                << "value: " << type_name(type) << "): " << type_name(tstruct) << "{"
+                << endl;
+    indent(out) << "  val x:" << type_name(tstruct) << " = " << type_name(tstruct) << "()" << endl;
+    indent(out) << "  x.set" << get_cap_name((*m_iter)->get_name()) << "(value)" << endl;
+    indent(out) << "  return x" << endl;
+    indent(out) << "}" << endl << endl;
+
+    if (type->is_binary()) {
+      indent(out) << "public static " << type_name(tstruct) << " " << (*m_iter)->get_name()
+                  << "(byte[] value) {" << endl;
+      indent(out) << "  " << type_name(tstruct) << " x = " << type_name(tstruct) << "()"
+                  << endl;
+      indent(out) << "  x.set" << get_cap_name((*m_iter)->get_name());
+      indent(out) << "(java.nio.ByteBuffer.wrap(value.clone()))" << endl;
+      indent(out) << "  return x" << endl;
+      indent(out) << "}" << endl << endl;
+    }
+  }
+}
+
+void t_kotlin_generator::generate_union_getters_and_setters(ostream &out, t_struct *tstruct) {
+  const vector<t_field *> &members = tstruct->get_members();
+  vector<t_field *>::const_iterator m_iter;
+
+  bool first = true;
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    if (first) {
+      first = false;
+    } else {
+      out << endl;
+    }
+
+    t_field *field = (*m_iter);
+    t_type *type = field->get_type();
+    std::string cap_name = get_cap_name(field->get_name());
+    bool is_deprecated = this->is_deprecated(field->annotations_);
+
+    generate_java_doc(out, field);
+    if (type->is_binary()) {
+      if (is_deprecated) {
+        indent(out) << "@Deprecated" << endl;
+      }
+      indent(out) << "fun get" << cap_name << "(): byte[] {" << endl;
+      indent(out) << "  set" << cap_name << "(org.apache.thrift.TBaseHelper.rightSize(buffer"
+                  << get_cap_name("for") << cap_name << "()));" << endl;
+      indent(out) << "  kotlin.nio.ByteBuffer b = buffer" << get_cap_name("for") << cap_name << "();" << endl;
+      indent(out) << "  return b == null ? null : b.array();" << endl;
+      indent(out) << "}" << endl;
+
+      out << endl;
+
+      indent(out) << "fun buffer" << get_cap_name("for")
+                  << get_cap_name(field->get_name()) << "(): kotlin.nio.ByteBuffer {" << endl;
+      indent(out) << "  if (uSetField == Fields." << constant_name(field->get_name()) << ") {"
+                  << endl;
+
+      indent(out)
+              << "    return org.apache.thrift.TBaseHelper.copyBinary(getFieldValue as kotlin.nio.ByteBuffer)"
+              << endl;
+
+      indent(out) << "  } else {" << endl;
+      indent(out) << "    throw java.lang.RuntimeException(\"Cannot get field '" << field->get_name()
+                  << "' because union is currently set to ${getFieldDesc(uSetField).name)}\")"
+                  << endl;
+      indent(out) << "  }" << endl;
+      indent(out) << "}" << endl;
+    } else {
+      if (is_deprecated) {
+        indent(out) << "@Deprecated" << endl;
+      }
+      indent(out) << "fun get" << get_cap_name(field->get_name()) 
+                  << "(): " << type_name(field->get_type()) << " {" << endl;
+      indent(out) << "  if (uSetField == Fields." << constant_name(field->get_name()) << ") {"
+                  << endl;
+      indent(out) << "    return uFieldValue as " << type_name(field->get_type(), true)
+                  << endl;
+      indent(out) << "  } else {" << endl;
+      indent(out) << "    throw java.lang.RuntimeException(\"Cannot get field '" << field->get_name()
+                  << "' because union is currently set to ${getFieldDesc(uSetField).name})\")"
+                  << endl;
+      indent(out) << "  }" << endl;
+      indent(out) << "}" << endl;
+    }
+
+    out << endl;
+
+    generate_java_doc(out, field);
+    if (type->is_binary()) {
+      if (is_deprecated) {
+        indent(out) << "@Deprecated" << endl;
+      }
+      indent(out) << "set" << get_cap_name(field->get_name()) << "(value: byte[]) {"
+                  << endl;
+      indent(out) << "  set" << get_cap_name(field->get_name());
+
+      indent(out) << "(kotlin.nio.ByteBuffer.wrap(value.clone()));" << endl;
+
+      indent(out) << "}" << endl;
+
+      out << endl;
+    }
+    if (is_deprecated) {
+      indent(out) << "@Deprecated" << endl;
+    }
+    indent(out) << "fun set" << get_cap_name(field->get_name()) << "("
+                << "value: " << type_name(field->get_type()) << ") {" << endl;
+
+    indent(out) << "  uSetField = Fields." << constant_name(field->get_name()) << endl;
+
+    if (type_can_be_null(field->get_type())) {
+      indent(out) << "  uFieldValue = java.util.Objects.requireNonNull(value,\"" << "Fields."
+                  << constant_name(field->get_name()) << "\")" << endl;
+    } else {
+      indent(out) << "  uFieldValue = value" << endl;
+    }
+
+    indent(out) << "}" << endl;
+  }
+}
+
+void t_kotlin_generator::generate_union_is_set_methods(ostream &out, t_struct *tstruct) {
+  const vector<t_field *> &members = tstruct->get_members();
+  vector<t_field *>::const_iterator m_iter;
+
+  bool first = true;
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    if (first) {
+      first = false;
+    } else {
+      out << endl;
+    }
+
+    std::string field_name = (*m_iter)->get_name();
+
+    indent(out) << "fun is" << get_cap_name("set") << get_cap_name(field_name) << "(): Boolean {"
+                << endl;
+    indent_up();
+    indent(out) << "return uSetField == Fields." << constant_name(field_name) << endl;
+    indent_down();
+    indent(out) << "}" << endl << endl;
+  }
+}
+
+void t_kotlin_generator::generate_union_abstract_methods(ostream &out, t_struct *tstruct) {
+  generate_check_type(out, tstruct);
+  out << endl;
+  generate_standard_scheme_read_value(out, tstruct);
+  out << endl;
+  generate_standard_scheme_write_value(out, tstruct);
+  out << endl;
+  generate_tuple_scheme_read_value(out, tstruct);
+  out << endl;
+  generate_tuple_scheme_write_value(out, tstruct);
+  out << endl;
+  generate_get_field_desc(out, tstruct);
+  out << endl;
+  generate_get_struct_desc(out, tstruct);
+  out << endl;
+  indent(out) << "override fun enumForId(id: Short): Fields {" << endl;
+  indent(out) << "  return Fields.findByThriftIdOrThrow(id)" << endl;
+  indent(out) << "}" << endl;
+}
+
+void t_kotlin_generator::generate_check_type(ostream &out, t_struct *tstruct) {
+  indent(out) << "@Throws(java.lang.ClassCastException::class)" << endl;
+  indent(out)
+          << "override fun checkType(setField: Fields, value: Any?) {"
+          << endl;
+  indent_up();
+
+  indent(out) << "when (setField) {" << endl;
+  indent_up();
+
+  const vector<t_field *> &members = tstruct->get_members();
+  vector<t_field *>::const_iterator m_iter;
+
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    t_field *field = (*m_iter);
+
+    indent(out) << "Fields." << constant_name(field->get_name()) << " -> {" << endl;
+    indent(out) << "  if (value !is " << type_name(field->get_type(), true, false, true)
+                << ") {" << endl;
+    indent(out) << "    throw java.lang.ClassCastException(\"Was expecting value of type "
+                << type_name(field->get_type(), true, false) << " for field '" << field->get_name()
+                << "', but got ${value?.javaClass?.simpleName}\")" << endl;
+    indent(out) << "  }" << endl;
+    indent(out) << "}" << endl;
+    // do the real check here
+  }
+
+  indent(out) << "else -> " << endl;
+  indent(out) << "  throw java.lang.IllegalArgumentException(\"Unknown field id $setField\")" << endl;
+
+  indent_down();
+  indent(out) << "}" << endl;
+
+  indent_down();
+  indent(out) << "}" << endl;
+}
+
+void t_kotlin_generator::generate_standard_scheme_read_value(ostream &out, t_struct *tstruct) {
+  indent(out) << "@Throws(org.apache.thrift.TException::class)" << endl;
+  indent(out) << "override fun standardSchemeReadValue( "
+              << "iprot: org.apache.thrift.protocol.TProtocol, field: org.apache.thrift.protocol.TField): Any? {" << endl;
+
+  indent_up();
+
+  indent(out) << "val setField:Fields? = Fields.findByThriftId(field.id)" << endl;
+  indent(out) << "if (setField != null) {" << endl;
+  indent_up();
+  indent(out) << "when (setField) {" << endl;
+  indent_up();
+
+  const vector<t_field *> &members = tstruct->get_members();
+  vector<t_field *>::const_iterator m_iter;
+
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    t_field *field = (*m_iter);
+
+    indent(out) << "Fields." << constant_name(field->get_name()) << " -> {" << endl;
+    indent_up();
+    indent(out) << "if (field.type == " << constant_name(field->get_name()) << "_FIELD_DESC.type) {"
+                << endl;
+    indent_up();
+    indent(out) << "var " << field->get_name() << ": "<< type_name(field->get_type(), true, false) << endl;
+    generate_deserialize_field(out, field, "");
+    indent(out) << "return " << field->get_name() << endl;
+    indent_down();
+    indent(out) << "} else {" << endl;
+    indent(out) << "  org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type)" << endl;
+    indent(out) << "  return null" << endl;
+    indent(out) << "}" << endl;
+    indent_down();
+    indent(out) << "}" << endl;
+  }
+
+  indent(out) << "else ->" << endl;
+  indent(out) << "  throw java.lang.IllegalStateException(\"setField wasn't null, but didn't match any "
+                 "of the case statements!\");" << endl;
+
+  indent_down();
+  indent(out) << "}" << endl;
+
+  indent_down();
+  indent(out) << "} else {" << endl;
+  indent_up();
+  indent(out) << "org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type)" << endl;
+  indent(out) << "return null" << endl;
+  indent_down();
+  indent(out) << "}" << endl;
+
+  indent_down();
+  indent(out) << "}" << endl;
+}
+
+void t_kotlin_generator::generate_standard_scheme_write_value(ostream &out, t_struct *tstruct) {
+  indent(out) << "@Throws(org.apache.thrift.TException::class)" << endl;
+  indent(out) << "override fun standardSchemeWriteValue(oprot: org.apache.thrift.protocol.TProtocol) {" << endl;
+
+  indent_up();
+
+  indent(out) << "when (uSetField) {" << endl;
+  indent_up();
+
+  const vector<t_field *> &members = tstruct->get_members();
+  vector<t_field *>::const_iterator m_iter;
+
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    t_field *field = (*m_iter);
+
+    indent(out) << "Fields." << constant_name(field->get_name()) << " -> {" << endl;
+    indent_up();
+    indent(out) << "val " << field->get_name() << ": " << type_name(field->get_type(), true, false) << " = "
+                << "uFieldValue as " << type_name(field->get_type(), true, false) << endl;
+    generate_serialize_field(out, field, "");
+    indent(out) << "return" << endl;
+    indent_down();
+    indent(out) << "}" << endl;
+  }
+
+  indent(out) << "else ->" << endl;
+  indent(out) << "  throw java.lang.IllegalStateException(\"Cannot write union with unknown field $uSetField\")" << endl;
+
+  indent_down();
+  indent(out) << "}" << endl;
+
+  indent_down();
+
+  indent(out) << "}" << endl;
+}
+
+void t_kotlin_generator::generate_tuple_scheme_read_value(ostream &out, t_struct *tstruct) {
+  indent(out) << "override fun tupleSchemeReadValue(iprot: org.apache.thrift.protocol.TProtocol"
+              << ", fieldID:Short):Any {" << endl;
+
+  indent_up();
+
+  indent(out) << "val setField:Fields? = Fields.findByThriftId(fieldID)" << endl;
+  indent(out) << "if (setField != null) {" << endl;
+  indent_up();
+  indent(out) << "return when (setField) {" << endl;
+  indent_up();
+
+  const vector<t_field *> &members = tstruct->get_members();
+  vector<t_field *>::const_iterator m_iter;
+
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    t_field *field = (*m_iter);
+
+    indent(out) << "Fields." << constant_name(field->get_name()) << " -> {" << endl;
+    indent_up();
+    indent(out) << "val " << field->get_name() << ":" << type_name(field->get_type(), true, false)
+                << endl;
+    generate_deserialize_field(out, field, "");
+    indent(out) << field->get_name() << endl;
+    scope_down(out);
+  }
+
+  indent(out) << "else ->" << endl;
+  indent(out) << "  throw java.lang.IllegalStateException(\"setField wasn't null, but didn't match any "
+                 "of the case statements!\")" << endl;
+
+  indent_down();
+  indent(out) << "}" << endl;
+
+  indent_down();
+  indent(out) << "} else {" << endl;
+  indent_up();
+  indent(out)
+          << "throw org.apache.thrift.protocol.TProtocolException(\"Couldn't find a field with field id \" + fieldID)"
+          << endl;
+  indent_down();
+  indent(out) << "}" << endl;
+  indent_down();
+  indent(out) << "}" << endl;
+}
+
+void t_kotlin_generator::generate_tuple_scheme_write_value(ostream &out, t_struct *tstruct) {
+  indent(out) << "override fun tupleSchemeWriteValue(oprot: org.apache.thrift.protocol.TProtocol) {" << endl;
+
+  indent_up();
+
+  indent(out) << "when (uSetField) {" << endl;
+  indent_up();
+
+  const vector<t_field *> &members = tstruct->get_members();
+  vector<t_field *>::const_iterator m_iter;
+
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    t_field *field = (*m_iter);
+
+    indent(out) << "Fields." << constant_name(field->get_name()) << " -> {" << endl;
+    indent_up();
+    indent(out) << "val " << field->get_name() << ":" + type_name(field->get_type(), true, false) << " = "
+                << "uFieldValue as " << type_name(field->get_type(), true, false) << endl;
+    generate_serialize_field(out, field, "");
+    indent(out) << "return" << endl;
+    scope_down(out);
+  }
+
+  indent(out) << "else -> " << endl;
+  indent(out) << "  throw java.lang.IllegalStateException(\"Cannot write union with unknown field $uSetField\")" << endl;
+
+  indent_down();
+  indent(out) << "}" << endl;
+
+  indent_down();
+
+  indent(out) << "}" << endl;
+}
+
+void t_kotlin_generator::generate_get_field_desc(ostream &out, t_struct *tstruct) {
+  indent(out) << "override fun getFieldDesc(setField:Fields?):org.apache.thrift.protocol.TField {"
+              << endl;
+  indent_up();
+
+  const vector<t_field *> &members = tstruct->get_members();
+  vector<t_field *>::const_iterator m_iter;
+
+  indent(out) << "return when (setField) {" << endl;
+  indent_up();
+
+  for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+    t_field *field = (*m_iter);
+    indent(out) << "Fields." << constant_name(field->get_name()) << " -> " << endl;
+    indent(out) << "  return " << constant_name(field->get_name()) << "_FIELD_DESC" << endl;
+  }
+
+  indent(out) << "else -> " << endl;
+  indent(out) << "  throw java.lang.IllegalArgumentException(\"Unknown field id $setField\")" << endl;
+
+  indent_down();
+  indent(out) << "}" << endl;
+
+  indent_down();
+  indent(out) << "}" << endl;
+}
+
+void t_kotlin_generator::generate_get_struct_desc(ostream &out, t_struct *tstruct) {
+  (void) tstruct;
+  indent(out) << "override fun getStructDesc():org.apache.thrift.protocol.TStruct {" << endl;
+  indent(out) << "  return STRUCT_DESC" << endl;
+  indent(out) << "}" << endl;
+}
+
+void t_kotlin_generator::generate_union_comparisons(ostream &out, t_struct *tstruct) {
+  // equality
+  indent(out) << "override fun equals(other: Any?):Boolean {" << endl;
+  indent(out) << "  if (other is " << tstruct->get_name() << ") {" << endl;
+  indent(out) << "    return equals(other)" << endl;
+  indent(out) << "  } else {" << endl;
+  indent(out) << "    return false" << endl;
+  indent(out) << "  }" << endl;
+  indent(out) << "}" << endl;
+
+  out << endl;
+
+  indent(out) << "fun equals(other:" << tstruct->get_name() << "?):Boolean {" << endl;
+  indent(out) << "  return other != null && uSetField == other.uSetField && "
+                 "uFieldValue?.equals(other.uFieldValue) ?: false" << endl;
+  indent(out) << "}" << endl;
+  out << endl;
+
+  indent(out) << "override fun compareTo(other:" << type_name(tstruct) << "):Int {" << endl;
+  indent(out) << "  val lastComparison:Int = org.apache.thrift.TBaseHelper.compareTo(uSetField, "
+                 "other.uSetField)" << endl;
+  indent(out) << "  if (lastComparison == 0) {" << endl;
+  indent(out) << "    return org.apache.thrift.TBaseHelper.compareTo(uFieldValue, "
+                 "other.uFieldValue)" << endl;
+  indent(out) << "  }" << endl;
+  indent(out) << "  return lastComparison" << endl;
+  indent(out) << "}" << endl;
+}
+
+void t_kotlin_generator::generate_union_hashcode(ostream &out, t_struct *tstruct) {
+  (void) tstruct;
+  indent(out) << "override fun hashCode():Int {" << endl;
+  indent(out) << "  val list:ArrayList<Any?> = ArrayList()" << endl;
+  indent(out) << "  list.add(this::class.java.getName())" << endl;
+  indent(out) << "  val setField: org.apache.thrift.TFieldIdEnum? = uSetField" << endl;
+  indent(out) << "  if (setField != null) {" << endl;
+  indent(out) << "    list.add(setField.thriftFieldId)" << endl;
+  indent(out) << "    val value: Any? = uFieldValue" << endl;
+  indent(out) << "    if (value is org.apache.thrift.TEnum) {" << endl;
+  indent(out) << "      list.add((uFieldValue as org.apache.thrift.TEnum).value)" << endl;
+  indent(out) << "    } else {" << endl;
+  indent(out) << "      list.add(value)" << endl;
+  indent(out) << "    }" << endl;
+  indent(out) << "  }" << endl;
+  indent(out) << "  return list.hashCode()" << endl;
+  indent(out) << "}" << endl;
+}
+
+/**
+ * kotlin struct definition. This has various parameters, as it could be
+ * generated standalone or inside another class as a helper. If it
+ * is a helper than it is a static class.
+ *
+ * @param tstruct      The struct definition
+ * @param is_exception Is this an exception?
+ * @param in_class     If inside a class, needs to be static class
+ * @param is_result    If this is a result it needs a different writer
+ */
+void t_kotlin_generator::generate_kotlin_struct_definition(ostream &out,
+                                                           t_struct *tstruct,
+                                                           bool is_exception,
+                                                           bool in_class,
+                                                           bool is_result) {
+  generate_java_doc(out, tstruct);
+  ostringstream companion_out;
+
+  bool is_const = (tstruct->annotations_.find("const") != tstruct->annotations_.end());
+  bool is_deprecated = this->is_deprecated(tstruct->annotations_);
+
+  if (!in_class) {
+    generate_java_generated_annotation(out);
+  }
+
+  if (is_deprecated) {
+    indent(out) << "@Deprecated" << endl;
+  }
+  indent(out) << (is_const ? "public " : "public ") << (in_class ? "static " : "") << "class "
+              << tstruct->get_name() << "( " << endl;
+
+  // Members are public
+  indent_up();
+  generate_private_variables(out, tstruct);
+  indent_down();
+  out << ")";
+  if (is_exception) {
+    out << ": org.apache.thrift.TException(), ";
+  } else {
+    out << ":";
+  }
+  out << " org.apache.thrift.TBase<" << tstruct->get_name() << ", " << tstruct->get_name()
+      << ".Fields>, java.io.Serializable, Cloneable, Comparable<" << tstruct->get_name() << ">";
+
+  out << " ";
+
+  scope_up(out);
+
+  indent(companion_out) << "companion object {" << endl;
+  indent_up();
+  generate_struct_desc(companion_out, tstruct);
+
+  companion_out << endl;
+
+  generate_field_descs(companion_out, tstruct);
+
+  companion_out << endl;
+
+  generate_scheme_map(companion_out, tstruct);
+  indent_down();
+
+  out << endl;
+
+  generate_field_name_constants(out, tstruct);
+
+  // isset data
+  const vector<t_field *> &members = tstruct->get_members();
+  vector<t_field *>::const_iterator m_iter;
+  if (!members.empty()) {
+    out << endl;
+
+    indent_up();
+    indent(companion_out) << "// isset id assignments" << endl;
+
+    int i = 0;
+    int optionals = 0;
+    for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+      if ((*m_iter)->get_req() == t_field::T_OPTIONAL) {
+        optionals++;
+      }
+      if (!type_can_be_null((*m_iter)->get_type())) {
+        indent(companion_out) << "private val " << isset_field_id(*m_iter) << ": Int = " << i << endl;
+        i++;
+      }
+    }
+    indent_down();
+
+    std::string primitiveType;
+    switch (needs_isset(tstruct, &primitiveType)) {
+      case ISSET_NONE:
+        break;
+      case ISSET_PRIMITIVE:
+        indent(out) << "private var " << " __isset_bitfield: " << primitiveType << " = 0" << endl;
+        break;
+      case ISSET_BITSET:
+        indent(out) << "private var __isset_bit_vector: java.util.BitSet = java.util.BitSet(" << i << ")" << endl;
+        break;
+    }
+
+    if (optionals > 0) {
+      std::string output_string = "private val optionals: Fields[] = {";
+      for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+        if ((*m_iter)->get_req() == t_field::T_OPTIONAL) {
+          output_string += "Fields." + constant_name((*m_iter)->get_name()) + ",";
+        }
+      }
+      indent(out) << output_string.substr(0, output_string.length() - 1) << "};" << endl;
+    }
+  }
+
+  generate_kotlin_meta_data_map(companion_out, tstruct);
+
+  generate_constructor(out, tstruct);
 
   // copy constructor
   indent(out) << "/**" << endl;
@@ -2121,8 +2115,8 @@ void t_kotlin_generator::generate_kotlin_struct_result_writer(ostream &out, t_st
 
 void t_kotlin_generator::generate_kotlin_struct_field_by_id(ostream &out, t_struct *tstruct) {
   (void) tstruct;
-  indent(out) << "override fun fieldForId(fieldId: Int):_Fields?" << " {" << endl;
-  indent(out) << "  return _Fields.findByThriftId(fieldId)" << endl;
+  indent(out) << "override fun fieldForId(fieldId: Short):Fields?" << " {" << endl;
+  indent(out) << "  return Fields.findByThriftId(fieldId)" << endl;
   indent(out) << "}" << endl << endl;
 }
 
@@ -2131,7 +2125,7 @@ void t_kotlin_generator::generate_reflection_getters(ostringstream &out,
                                                      const string &field_name,
                                                      const string &cap_name) {
   indent_up();
-  indent(out) << "_Fields." << constant_name(field_name) << " -> "
+  indent(out) << "Fields." << constant_name(field_name) << " -> "
               << (type->is_bool() ? "is" : "get") << cap_name << "()" << endl;
   indent_down();
 }
@@ -2141,7 +2135,7 @@ void t_kotlin_generator::generate_reflection_setters(ostringstream &out,
                                                      const string &field_name,
                                                      const string &cap_name) {
   const bool is_binary = type->is_binary();
-  indent(out) << "_Fields." << constant_name(field_name) << " ->" << endl;
+  indent(out) << "Fields." << constant_name(field_name) << " ->" << endl;
   indent_up();
   indent(out) << "if (value == null) {" << endl;
   indent(out) << "  unset" << get_cap_name(field_name) << "()" << endl;
@@ -2184,7 +2178,7 @@ void t_kotlin_generator::generate_generic_field_getters_setters(std::ostream &ou
 
   // create the setter
 
-  indent(out) << "override fun setFieldValue(field: _Fields, "
+  indent(out) << "override fun setFieldValue(field: Fields, "
               << " value: Any" << kotlin_nullable_annotation() << ") {" << endl;
   indent(out) << "  when (field) {" << endl;
   out << setter_stream.str();
@@ -2192,7 +2186,7 @@ void t_kotlin_generator::generate_generic_field_getters_setters(std::ostream &ou
   indent(out) << "}" << endl << endl;
 
   // create the getter
-  indent(out) << "override fun getFieldValue(field: _Fields): Any" << kotlin_nullable_annotation() << " {" << endl;
+  indent(out) << "override fun getFieldValue(field: Fields): Any" << kotlin_nullable_annotation() << " {" << endl;
   indent_up();
   indent(out) << "return when(field) {" << endl;
   out << getter_stream.str();
@@ -2209,7 +2203,7 @@ void t_kotlin_generator::generate_generic_isset_method(std::ostream &out, t_stru
   // create the isSet method
   indent(out) << "// Returns true if field corresponding to fieldID is set (has been assigned a "
                  "value) and false otherwise" << endl;
-  indent(out) << "override fun isSet(field: _Fields): Boolean {" << endl;
+  indent(out) << "override fun isSet(field: Fields): Boolean {" << endl;
   indent_up();
 
   indent(out) << "return when (field) {" << endl;
@@ -2217,7 +2211,7 @@ void t_kotlin_generator::generate_generic_isset_method(std::ostream &out, t_stru
   indent_up();
   for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
     t_field *field = *f_iter;
-    indent(out) << "_Fields." << constant_name(field->get_name()) << "->"
+    indent(out) << "Fields." << constant_name(field->get_name()) << "->"
                 << generate_isset_check(field) << endl;
   }
   indent_down();
@@ -2611,13 +2605,13 @@ void t_kotlin_generator::generate_kotlin_meta_data_map(ostream &out, t_struct *t
   indent_up();
   // Static Map with fieldID -> org.apache.thrift.meta_data.FieldMetaData mappings
   indent(out)
-          << "val metaDataMap: Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> = mapOf(" << endl;
+          << "private val metaDataMap: Map<Fields, org.apache.thrift.meta_data.FieldMetaData> = mapOf(" << endl;
   indent_up();
   // Populate map
   for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
     t_field *field = *f_iter;
     std::string field_name = field->get_name();
-    indent(out) << "_Fields." << constant_name(field_name)
+    indent(out) << "Fields." << constant_name(field_name)
                 << " to org.apache.thrift.meta_data.FieldMetaData(\"" << field_name << "\", ";
 
     // Set field requirement type (required, optional, etc.)
@@ -4045,7 +4039,8 @@ void t_kotlin_generator::generate_serialize_container(ostream &out,
 
   string iter = tmp("_iter");
   if (ttype->is_map()) {
-    indent(out) << "for (" << iter << ":MutableMap.MutableEntry<" << type_name(((t_map *) ttype)->get_key_type(), true, false)
+    indent(out) << "for (" << iter << ":MutableMap.MutableEntry<"
+                << type_name(((t_map *) ttype)->get_key_type(), true, false)
                 << ", " << type_name(((t_map *) ttype)->get_val_type(), true, false) << "> in "
                 << prefix << ".entries)";
   } else if (ttype->is_set()) {
@@ -4083,8 +4078,8 @@ void t_kotlin_generator::generate_serialize_container(ostream &out,
  */
 void t_kotlin_generator::generate_serialize_map_element(ostream &out,
                                                         t_map *tmap,
-                                                        const string& iter,
-                                                        const string& map,
+                                                        const string &iter,
+                                                        const string &map,
                                                         bool has_metadata) {
   (void) map;
   t_field kfield(tmap->get_key_type(), iter + ".key");
@@ -4736,7 +4731,7 @@ void t_kotlin_generator::generate_scheme_map(ostream &out, t_struct *tstruct) {
 void t_kotlin_generator::generate_field_name_constants(ostream &out, t_struct *tstruct) {
   indent(out) << "/** The set of fields this struct contains, along with convenience methods for "
                  "finding and manipulating them. */" << endl;
-  indent(out) << "public enum class _Fields(" << endl;
+  indent(out) << "enum class Fields(" << endl;
   indent_up();
   out << indent() << "override val thriftFieldId: Short," << endl
       << indent() << "override val fieldName: String" << endl;
@@ -4762,7 +4757,7 @@ void t_kotlin_generator::generate_field_name_constants(ostream &out, t_struct *t
   // Start of companion object
   indent(out) << "companion object {" << endl;
   indent_up();
-  indent(out) << "var byName: Map<String, _Fields> = mapOf(" << endl;
+  indent(out) << "var byName: Map<String, Fields> = mapOf(" << endl;
   indent_up();
   first = true;
   for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
@@ -4777,16 +4772,16 @@ void t_kotlin_generator::generate_field_name_constants(ostream &out, t_struct *t
   out << endl << indent() << ")" << endl;
 
   indent(out) << "/**" << endl;
-  indent(out) << " * Find the _Fields constant that matches fieldId, or null if its not found."
+  indent(out) << " * Find the Fields constant that matches fieldId, or null if its not found."
               << endl;
   indent(out) << " */" << endl;
-  indent(out) << "fun findByThriftId(fieldId: Int): _Fields? {" << endl;
+  indent(out) << "fun findByThriftId(fieldId: Short): Fields? {" << endl;
   indent_up();
   indent(out) << "return when(fieldId) {" << endl;
   indent_up();
 
   for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-    indent(out) << (*m_iter)->get_key() << " -> // "
+    indent(out) << (*m_iter)->get_key() << ".toShort() -> // "
                 << constant_name((*m_iter)->get_name()) << endl;
     indent(out) << "  " << constant_name((*m_iter)->get_name()) << endl;
   }
@@ -4801,19 +4796,19 @@ void t_kotlin_generator::generate_field_name_constants(ostream &out, t_struct *t
   indent(out) << "}" << endl << endl;
 
   indent(out) << "/**" << endl;
-  indent(out) << " * Find the _Fields constant that matches fieldId, throwing an exception" << endl;
+  indent(out) << " * Find the Fields constant that matches fieldId, throwing an exception" << endl;
   indent(out) << " * if it is not found." << endl;
   indent(out) << " */" << endl;
-  indent(out) << "fun findByThriftIdOrThrow(fieldId: Int): _Fields {" << endl;
+  indent(out) << "fun findByThriftIdOrThrow(fieldId: Short): Fields {" << endl;
   indent(out) << "  return findByThriftId(fieldId)" << endl;
   indent(out) << "    ?: throw java.lang.IllegalArgumentException(\"Field $fieldId doesn't exist!\");" << endl;
   indent(out) << "}" << endl << endl;
 
   indent(out) << "/**" << endl;
-  indent(out) << " * Find the _Fields constant that matches name, or null if its not found."
+  indent(out) << " * Find the Fields constant that matches name, or null if its not found."
               << endl;
   indent(out) << " */" << endl;
-  indent(out) << "fun findByName(name: String): _Fields? {" << endl;
+  indent(out) << "fun findByName(name: String): Fields? {" << endl;
   indent(out) << "  return byName.get(name)" << endl;
   indent(out) << "}" << endl;
 
@@ -5240,7 +5235,7 @@ void t_kotlin_generator::generate_kotlin_struct_tuple_scheme(ostream &out, t_str
 
 void t_kotlin_generator::generate_kotlin_scheme_lookup(ostream &out) {
   indent_up();
-  indent(out) << "private fun <S : org.apache.thrift.TBase<*, *>> scheme("
+  indent(out) << "private fun <S : org.apache.thrift.TBase<S, *>> scheme("
               << "proto:org.apache.thrift.protocol.TProtocol): org.apache.thrift.scheme.IScheme<S> {" << endl;
   indent_up();
   indent(out) << "if(proto.scheme is org.apache.thrift.scheme.StandardScheme<*>) {" << endl;

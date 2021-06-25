@@ -20,4 +20,4 @@ package org.apache.thrift.scheme
 
 import org.apache.thrift.TBase
 
-abstract class TupleScheme<T : TBase<*, *>?> : IScheme<T>
+abstract class TupleScheme<T : TBase<T, *>> : IScheme<T>

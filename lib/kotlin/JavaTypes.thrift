@@ -19,6 +19,21 @@
 
 namespace kotlin com.testing.api
 
+struct A {
+    1: string p1,
+    2: string p2,
+}
+
+struct B {
+    1: string p3,
+    2: string p4,
+}
+
+union ABCombiner {
+    1: A a;
+    2: B b;
+}
+
 enum ErrorCodes {
   AUTH_ERROR ;
   SERVER_ERROR;
@@ -44,5 +59,6 @@ struct HelloAll {
   5: list<string> listString,
   6: map<string, string> mapStringString,
   7: set<string> setString,
-  8: binary binData
+  8: binary binData,
+  9: ABCombiner combiner,
 }

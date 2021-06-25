@@ -10,7 +10,7 @@ interface TBase<T : TBase<T, F>?, F : TFieldIdEnum?> : Comparable<T>, TSerializa
     /**
      * Get the F instance that corresponds to fieldId.
      */
-    fun fieldForId(fieldId: Int): F?
+    fun fieldForId(fieldId: Short): F?
 
     /**
      * Check if a field is currently set or unset.
@@ -34,6 +34,7 @@ interface TBase<T : TBase<T, F>?, F : TFieldIdEnum?> : Comparable<T>, TSerializa
      * @param field
      */
     fun setFieldValue(field: F, value: Any?)
+
     fun deepCopy(): T
 
     /**
