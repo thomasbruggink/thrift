@@ -397,7 +397,7 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readBinary(): ByteBuffer? {
+    override fun readBinary(): ByteBuffer {
         val size = readI32()
         checkStringReadLength(size)
         if (trans_!!.bytesRemainingInBuffer >= size) {

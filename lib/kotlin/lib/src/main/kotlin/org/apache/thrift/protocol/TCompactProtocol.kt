@@ -685,7 +685,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Read a ByteBuffer from the wire.
      */
     @Throws(TException::class)
-    override fun readBinary(): ByteBuffer? {
+    override fun readBinary(): ByteBuffer {
         val length = readVarint32()
         if (length == 0) {
             return EMPTY_BUFFER

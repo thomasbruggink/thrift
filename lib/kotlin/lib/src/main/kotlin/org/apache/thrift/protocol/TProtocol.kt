@@ -147,7 +147,7 @@ abstract class TProtocol {
     @Throws(TException::class)
     abstract fun readString(): String
     @Throws(TException::class)
-    abstract fun readBinary(): ByteBuffer?
+    abstract fun readBinary(): ByteBuffer
 
     /**
      * Reset any internal state back to a blank slate. This method only needs to

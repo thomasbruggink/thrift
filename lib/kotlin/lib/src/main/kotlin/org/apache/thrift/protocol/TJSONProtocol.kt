@@ -826,7 +826,7 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readBinary(): ByteBuffer? {
+    override fun readBinary(): ByteBuffer {
         return ByteBuffer.wrap(readJSONBase64())
     }
 

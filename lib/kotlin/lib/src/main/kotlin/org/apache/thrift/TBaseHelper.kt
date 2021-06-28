@@ -20,7 +20,6 @@ package org.apache.thrift
 import java.io.Serializable
 import java.nio.ByteBuffer
 import java.util.*
-import kotlin.experimental.or
 
 object TBaseHelper {
     private val comparator: Comparator<*> = NestedStructureComparator()
@@ -216,13 +215,13 @@ object TBaseHelper {
         return remaining
     }
 
-    fun rightSize(`in`: ByteBuffer?): ByteBuffer? {
-        if (`in` == null) {
+    fun rightSize(input: ByteBuffer?): ByteBuffer? {
+        if (input == null) {
             return null
         }
-        return if (wrapsFullArray(`in`)) {
-            `in`
-        } else ByteBuffer.wrap(byteBufferToByteArray(`in`))
+        return if (wrapsFullArray(input)) {
+            input
+        } else ByteBuffer.wrap(byteBufferToByteArray(input))
     }
 
     fun copyBinary(orig: ByteBuffer?): ByteBuffer? {

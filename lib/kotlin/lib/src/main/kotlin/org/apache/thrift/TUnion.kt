@@ -58,7 +58,7 @@ abstract class TUnion<T : TUnion<T, F>, F : TFieldIdEnum> protected constructor(
                 o.deepCopy()
             }
             is ByteBuffer -> {
-                copyBinary(o as ByteBuffer?)
+                copyBinary(o)
             }
             is List<*> -> {
                 deepCopyList(o)
