@@ -353,15 +353,6 @@ public:
 
     std::string argument_list(t_struct *tstruct, bool include_types = true);
 
-    std::string async_function_call_arglist(t_function *tfunc,
-                                            bool use_base_method = true,
-                                            bool include_types = true);
-
-    std::string async_argument_list(t_function *tfunct,
-                                    t_struct *tstruct,
-                                    t_type *ttype,
-                                    bool include_types = false);
-
     std::string type_to_enum(t_type *ttype);
 
     void generate_struct_desc(ostream &out, t_struct *tstruct);
@@ -984,8 +975,7 @@ void t_kotlin_generator::generate_constructor(ostream &out, t_struct *tstruct) {
                       << " = org.apache.thrift.TBaseHelper.copyBinary(" << (*m_iter)->get_name()
                       << ");" << endl;
         } else {
-          indent(out) << "this." << (*m_iter)->get_name() << " = " << (*m_iter)->get_name() << ";"
-                      << endl;
+          indent(out) << "this." << (*m_iter)->get_name() << " = " << (*m_iter)->get_name() << endl;
         }
         generate_isset_set(out, (*m_iter), "");
       }
@@ -2269,7 +2259,7 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
           indent(out) << "@Deprecated" << endl;
         }
         indent(out) << "fun get" << cap_name;
-        out << get_cap_name("size(): org.apache.thrift.Option<Integer>  {") << endl;
+        out << get_cap_name("size(): org.apache.thrift.Option<Int>  {") << endl;
 
         indent_up();
         indent(out) << "if (this." << field_name << " == null) {" << endl;
@@ -2278,7 +2268,7 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
         indent_down();
         indent(out) << "} else {" << endl;
         indent_up();
-        indent(out) << "return org.apache.thrift.Option.some(this." << field_name << ".size())" << endl;
+        indent(out) << "return org.apache.thrift.Option.some(this." << field_name << "!!.size)" << endl;
         indent_down();
         indent(out) << "}" << endl;
         indent_down();
@@ -2310,8 +2300,8 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
         if (is_deprecated) {
           indent(out) << "@Deprecated" << endl;
         }
-        indent(out) << "fun get" << cap_name << ":org.apache.thrift.Option<kotlin.util.Iterator<" << type_name(element_type, true, false) << ">>";
-        out << get_cap_name("iterator() {") << endl;
+        indent(out) << "fun get" << cap_name << get_cap_name("iterator():")
+                    << "org.apache.thrift.Option<Iterator<" << type_name(element_type, true, false) << ">> {" << endl;
 
         indent_up();
         indent(out) << "if (this." << field_name << " == null) {" << endl;
@@ -2320,7 +2310,7 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
         indent_down();
         indent(out) << "} else {" << endl;
         indent_up();
-        indent(out) << "return org.apache.thrift.Option.some(this." << field_name << ".iterator())" << endl;
+        indent(out) << "return org.apache.thrift.Option.some(this." << field_name << "!!.iterator())" << endl;
         indent_down();
         indent(out) << "}" << endl;
         indent_down();
@@ -2420,7 +2410,7 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
 
         indent(out) << "if (this.isSet" << cap_name << "()) {" << endl;
         indent_up();
-        indent(out) << "return org.apache.thrift.Option.some(this." << field_name << ")" << endl;
+        indent(out) << "return org.apache.thrift.Option.some(this." << field_name << "!!)" << endl;
         indent_down();
         indent(out) << "} else {" << endl;
         indent_up();
@@ -2494,12 +2484,12 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
     indent(out) << "fun unset" << cap_name << "() {" << endl;
     indent_up();
     if (type_can_be_null(type)) {
-      indent(out) << "this." << field_name << " = null;" << endl;
+      indent(out) << "this." << field_name << " = null" << endl;
     } else if (issetType == ISSET_PRIMITIVE) {
       indent(out) << "__isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, "
                   << isset_field_id(field) << ");" << endl;
     } else {
-      indent(out) << "__isset_bit_vector.clear(" << isset_field_id(field) << ");" << endl;
+      indent(out) << "__isset_bit_vector.clear(" << isset_field_id(field) << ")" << endl;
     }
     indent_down();
     indent(out) << "}" << endl << endl;
@@ -2513,11 +2503,11 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
     indent(out) << "fun is" << get_cap_name("set") << cap_name << "(): Boolean {" << endl;
     indent_up();
     if (type_can_be_null(type)) {
-      indent(out) << "return this." << field_name << " != null;" << endl;
+      indent(out) << "return this." << field_name << " != null" << endl;
     } else if (issetType == ISSET_PRIMITIVE) {
       indent(out) << "return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, "
                   << isset_field_id(field)
-                  << ");" << endl;
+                  << ")" << endl;
     } else {
       indent(out) << "return __isset_bit_vector.get(" << isset_field_id(field) << ");" << endl;
     }
@@ -2532,7 +2522,7 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
     indent_up();
     if (type_can_be_null(type)) {
       indent(out) << "if (!value) {" << endl;
-      indent(out) << "  this." << field_name << " = null;" << endl;
+      indent(out) << "  this." << field_name << " = null" << endl;
       indent(out) << "}" << endl;
     } else if (issetType == ISSET_PRIMITIVE) {
       indent(out) << "__isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, "
@@ -2810,17 +2800,18 @@ void t_kotlin_generator::generate_service_interface(t_service *tservice) {
   string extends_iface = "";
   if (tservice->get_extends() != nullptr) {
     extends = type_name(tservice->get_extends());
-    extends_iface = " extends " + extends + ".Iface";
+    extends_iface = " : " + extends + ".Iface";
   }
 
   generate_java_doc(f_service_, tservice);
-  f_service_ << indent() << "public interface Iface" << extends_iface << " {" << endl << endl;
+  f_service_ << indent() << "interface Iface" << extends_iface << " {" << endl << endl;
   indent_up();
   vector<t_function *> functions = tservice->get_functions();
   vector<t_function *>::iterator f_iter;
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
     generate_java_doc(f_service_, *f_iter);
-    indent(f_service_) << "public " << function_signature(*f_iter) << ";" << endl << endl;
+    indent(f_service_) << "@Throws(org.apache.thrift.TException::class)" << endl;
+    indent(f_service_) << "fun " << function_signature(*f_iter) << endl << endl;
   }
   indent_down();
   f_service_ << indent() << "}" << endl << endl;
@@ -2831,7 +2822,7 @@ void t_kotlin_generator::generate_service_async_interface(t_service *tservice) {
   string extends_iface = "";
   if (tservice->get_extends() != nullptr) {
     extends = type_name(tservice->get_extends());
-    extends_iface = " extends " + extends + " .AsyncIface";
+    extends_iface = " : " + extends + " .AsyncIface";
   }
 
   f_service_ << indent() << "public interface AsyncIface" << extends_iface << " {" << endl << endl;
@@ -2839,8 +2830,8 @@ void t_kotlin_generator::generate_service_async_interface(t_service *tservice) {
   vector<t_function *> functions = tservice->get_functions();
   vector<t_function *>::iterator f_iter;
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
-    indent(f_service_) << "public " << function_signature_async(*f_iter, true)
-                       << " throws org.apache.thrift.TException;" << endl << endl;
+    indent(f_service_) << "@Throws(org.apache.thrift.TException::class)" << endl;
+    indent(f_service_) << "suspend fun " << function_signature_async(*f_iter, true) << endl << endl;
   }
   indent_down();
   f_service_ << indent() << "}" << endl << endl;
@@ -2876,40 +2867,37 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
     extends_client = extends + ".Client";
   }
 
-  indent(f_service_) << "public static class Client extends " << extends_client
-                     << " : Iface {" << endl;
+  indent(f_service_) << "class Client : " << extends_client
+                     << ", Iface {" << endl;
   indent_up();
 
+  indent(f_service_) << "companion object {" << endl;
+  indent_up();
   indent(f_service_)
-          << "public static class Factory : org.apache.thrift.TServiceClientFactory<Client> {"
+          << "class Factory : org.apache.thrift.TServiceClientFactory<Client> {"
           << endl;
   indent_up();
-  indent(f_service_) << "public Factory() {}" << endl;
-  indent(f_service_) << "public Client getClient(org.apache.thrift.protocol.TProtocol prot) {"
+  indent(f_service_) << "override fun getClient(prot: org.apache.thrift.protocol.TProtocol):Client {"
                      << endl;
   indent_up();
-  indent(f_service_) << "return Client(prot);" << endl;
+  indent(f_service_) << "return Client(prot)" << endl;
   indent_down();
   indent(f_service_) << "}" << endl;
-  indent(f_service_) << "public Client getClient(org.apache.thrift.protocol.TProtocol iprot, "
-                        "org.apache.thrift.protocol.TProtocol oprot) {" << endl;
+  indent(f_service_) << "override fun getClient(iprot: org.apache.thrift.protocol.TProtocol, "
+                        "oprot: org.apache.thrift.protocol.TProtocol):Client {" << endl;
   indent_up();
-  indent(f_service_) << "return Client(iprot, oprot);" << endl;
+  indent(f_service_) << "return Client(iprot, oprot)" << endl;
   indent_down();
   indent(f_service_) << "}" << endl;
   indent_down();
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "public Client(org.apache.thrift.protocol.TProtocol prot)" << endl;
-  scope_up(f_service_);
-  indent(f_service_) << "super(prot, prot);" << endl;
+  indent(f_service_) << "}" << endl;
   scope_down(f_service_);
+
+  indent(f_service_) << "constructor(prot:org.apache.thrift.protocol.TProtocol): super(prot, prot)" << endl;
   f_service_ << endl;
 
-  indent(f_service_) << "public Client(org.apache.thrift.protocol.TProtocol iprot, "
-                        "org.apache.thrift.protocol.TProtocol oprot) {" << endl;
-  indent(f_service_) << "  super(iprot, oprot);" << endl;
-  indent(f_service_) << "}" << endl << endl;
+  indent(f_service_) << "constructor(iprot:org.apache.thrift.protocol.TProtocol, "
+                        "oprot:org.apache.thrift.protocol.TProtocol): super(iprot, oprot)" << endl << endl;
 
   // Generate client method implementations
   vector<t_function *> functions = tservice->get_functions();
@@ -2922,7 +2910,7 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
     kotlinname = as_camel_case(funname);
 
     // Open function
-    indent(f_service_) << "public " << function_signature(*f_iter) << endl;
+    indent(f_service_) << "override fun " << function_signature(*f_iter) << endl;
     scope_up(f_service_);
     indent(f_service_) << "send" << sep << kotlinname << "(";
 
@@ -2941,14 +2929,14 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
       }
       f_service_ << (*fld_iter)->get_name();
     }
-    f_service_ << ");" << endl;
+    f_service_ << ")" << endl;
 
     if (!(*f_iter)->is_oneway()) {
       f_service_ << indent();
       if (!(*f_iter)->get_returntype()->is_void()) {
         f_service_ << "return ";
       }
-      f_service_ << "recv" << sep << kotlinname << "();" << endl;
+      f_service_ << "recv" << sep << kotlinname << "()" << endl;
     }
     scope_down(f_service_);
     f_service_ << endl;
@@ -2960,19 +2948,19 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
     string argsname = (*f_iter)->get_name() + "_args";
 
     // Open function
-    indent(f_service_) << "public " << function_signature(&send_function) << endl;
+    indent(f_service_) << "fun " << function_signature(&send_function) << endl;
     scope_up(f_service_);
 
     // Serialize the request
-    indent(f_service_) << argsname << " args = " << argsname << "();" << endl;
+    indent(f_service_) << "val args:" << argsname << " = " << argsname << "()" << endl;
 
     for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
       indent(f_service_) << "args.set" << get_cap_name((*fld_iter)->get_name()) << "("
-                         << (*fld_iter)->get_name() << ");" << endl;
+                         << (*fld_iter)->get_name() << ")" << endl;
     }
 
     const string sendBaseName = (*f_iter)->is_oneway() ? "sendBaseOneway" : "sendBase";
-    indent(f_service_) << sendBaseName << "(\"" << funname << "\", args);" << endl;
+    indent(f_service_) << sendBaseName << "(\"" << funname << "\", args)" << endl;
 
     scope_down(f_service_);
     f_service_ << endl;
@@ -2986,16 +2974,17 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
                                &noargs,
                                (*f_iter)->get_xceptions());
       // Open function
-      indent(f_service_) << "public " << function_signature(&recv_function) << endl;
+      indent(f_service_) << "fun " << function_signature(&recv_function) << endl;
       scope_up(f_service_);
 
-      f_service_ << indent() << resultname << " result = " << resultname << "();" << endl
-                 << indent() << "receiveBase(result, \"" << funname << "\");" << endl;
+      f_service_ << indent() << "val result:" << resultname << " = " << resultname << "()" << endl
+                 << indent() << "receiveBase(result, \"" << funname << "\")" << endl;
 
       // Careful, only return _result if not a void function
       if (!(*f_iter)->get_returntype()->is_void()) {
         f_service_ << indent() << "if (result." << generate_isset_check("success") << ") {" << endl
-                   << indent() << "  return result.success;" << endl << indent() << "}" << endl;
+                   << indent() << "  return result.getSuccess()!!" << endl 
+                   << indent() << "}" << endl;
       }
 
       t_struct *xs = (*f_iter)->get_xceptions();
@@ -3003,18 +2992,18 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
       vector<t_field *>::const_iterator x_iter;
       for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
         f_service_ << indent() << "if (result." << (*x_iter)->get_name() << " != null) {" << endl
-                   << indent() << "  throw result." << (*x_iter)->get_name() << ";" << endl
+                   << indent() << "  throw result." << (*x_iter)->get_name() << endl
                    << indent() << "}" << endl;
       }
 
       // If you get here it's an exception, unless a void function
       if ((*f_iter)->get_returntype()->is_void()) {
-        indent(f_service_) << "return;" << endl;
+        indent(f_service_) << "return" << endl;
       } else {
         f_service_ << indent() << "throw "
                                   "org.apache.thrift.TApplicationException(org.apache.thrift."
                                   "TApplicationException.MISSING_RESULT, \""
-                   << (*f_iter)->get_name() << " failed: unknown result\");" << endl;
+                   << (*f_iter)->get_name() << " failed: unknown result\")" << endl;
       }
 
       // Close function
@@ -3034,17 +3023,18 @@ void t_kotlin_generator::generate_service_async_client(t_service *tservice) {
     extends = type_name(tservice->get_extends()) + ".AsyncClient";
   }
 
-  indent(f_service_) << "public static class AsyncClient extends " << extends
-                     << " : AsyncIface {" << endl;
+  
+  indent(f_service_) << "class AsyncClient : " << extends
+                     << ", AsyncIface {" << endl;
   indent_up();
 
   // Factory method
-  indent(f_service_) << "public static class Factory : "
-                        "org.apache.thrift.async.TAsyncClientFactory<AsyncClient> {" << endl;
-  indent(f_service_) << "  private org.apache.thrift.async.TAsyncClientManager clientManager;"
-                     << endl;
-  indent(f_service_) << "  private org.apache.thrift.protocol.TProtocolFactory protocolFactory;"
-                     << endl;
+  indent(f_service_) << "companion object {" << endl;
+  indent_up();
+  indent(f_service_) << "class Factory(" << endl;
+  indent(f_service_) << "  private val clientManager:org.apache.thrift.async.TAsyncClientManager," << endl;
+  indent(f_service_) << "  private val protocolFactory:org.apache.thrift.protocol.TProtocolFactory" << endl;
+  indent(f_service_) << "): org.apache.thrift.async.TAsyncClientFactory<AsyncClient> {" << endl;
   indent(f_service_) << "  public Factory(org.apache.thrift.async.TAsyncClientManager "
                         "clientManager, org.apache.thrift.protocol.TProtocolFactory "
                         "protocolFactory) {" << endl;
@@ -3059,12 +3049,14 @@ void t_kotlin_generator::generate_service_async_client(t_service *tservice) {
   indent(f_service_) << "  }" << endl;
   indent(f_service_) << "}" << endl << endl;
 
-  indent(f_service_) << "public AsyncClient(org.apache.thrift.protocol.TProtocolFactory "
+  indent(f_service_) << "fun AsyncClient(org.apache.thrift.protocol.TProtocolFactory "
                         "protocolFactory, org.apache.thrift.async.TAsyncClientManager "
                         "clientManager, org.apache.thrift.transport.TNonblockingTransport "
                         "transport) {" << endl;
   indent(f_service_) << "  super(protocolFactory, clientManager, transport);" << endl;
-  indent(f_service_) << "}" << endl << endl;
+  indent(f_service_) << "}" << endl;
+  scope_down(f_service_);
+  indent(f_service_) << endl;
 
   // Generate client method implementations
   vector<t_function *> functions = tservice->get_functions();
@@ -3089,7 +3081,7 @@ void t_kotlin_generator::generate_service_async_client(t_service *tservice) {
                        << " throws org.apache.thrift.TException {" << endl;
     indent(f_service_) << "  checkReady();" << endl;
     indent(f_service_) << "  " << funclassname << " method_call = " + funclassname + "("
-                       << async_argument_list(*f_iter, arg_struct, ret_type)
+                       << argument_list((*f_iter)->get_arglist())
                        << ", this, ___protocolFactory, ___transport);" << endl;
     indent(f_service_) << "  this.___currentMethod = method_call;" << endl;
     indent(f_service_) << "  ___manager.call(method_call);" << endl;
@@ -3099,7 +3091,7 @@ void t_kotlin_generator::generate_service_async_client(t_service *tservice) {
 
     // TAsyncMethod object for this function call
     indent(f_service_) << "public static class " + funclassname
-                          + " extends org.apache.thrift.async.TAsyncMethodCall<"
+                          + " : org.apache.thrift.async.TAsyncMethodCall<"
                           + type_name((*f_iter)->get_returntype(), true) + "> {" << endl;
     indent_up();
 
@@ -3114,7 +3106,7 @@ void t_kotlin_generator::generate_service_async_client(t_service *tservice) {
 
     // Constructor
     indent(f_service_) << "public " + funclassname + "("
-                          + async_argument_list(*f_iter, arg_struct, ret_type, true)
+                          + argument_list((*f_iter)->get_arglist(), true)
                        << ", org.apache.thrift.async.TAsyncClient client, "
                           "org.apache.thrift.protocol.TProtocolFactory protocolFactory, "
                           "org.apache.thrift.transport.TNonblockingTransport transport) throws "
@@ -3172,9 +3164,9 @@ void t_kotlin_generator::generate_service_async_client(t_service *tservice) {
                            "client.getProtocolFactory().getProtocol(memoryTransport);" << endl;
     indent(f_service_);
     if (ret_type->is_void()) { // NB: Includes oneways which always return void.
-      f_service_ << "return null;" << endl;
+      f_service_ << "return null" << endl;
     } else {
-      f_service_ << "return (Client(prot)).recv" + sep + kotlinname + "();" << endl;
+      f_service_ << "return (Client(prot)).recv" + sep + kotlinname + "()" << endl;
     }
 
     // Close function
@@ -3615,13 +3607,13 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
     }
     f_service_ << "args." << (*f_iter)->get_name();
   }
-  f_service_ << ");" << endl;
+  f_service_ << ")" << endl;
 
   // Set isset on success field
   if (!tfunction->is_oneway() && !tfunction->get_returntype()->is_void()
       && !type_can_be_null(tfunction->get_returntype())) {
     indent(f_service_) << "result.set" << get_cap_name("success") << get_cap_name("isSet")
-                       << "(true);" << endl;
+                       << "(true)" << endl;
   }
 
   if (!tfunction->is_oneway() && xceptions.size() > 0) {
@@ -3633,7 +3625,7 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
       if (!tfunction->is_oneway()) {
         indent_up();
         f_service_ << indent() << "result." << (*x_iter)->get_name() << " = "
-                   << (*x_iter)->get_name() << ";" << endl;
+                   << (*x_iter)->get_name() << endl;
         indent_down();
         f_service_ << indent() << "}";
       } else {
@@ -3644,9 +3636,9 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
   }
 
   if (tfunction->is_oneway()) {
-    indent(f_service_) << "return null;" << endl;
+    indent(f_service_) << "return null" << endl;
   } else {
-    indent(f_service_) << "return result;" << endl;
+    indent(f_service_) << "return resul;" << endl;
   }
   indent_down();
   indent(f_service_) << "}";
@@ -4231,7 +4223,7 @@ string t_kotlin_generator::declare_field(t_field *tfield, bool comment, bool las
   t_type *ttype = get_true_type(tfield->get_type());
   result += tfield->get_name() + ": " + type_name(tfield->get_type());
   if (type_can_be_null(ttype)) {
-    result += "? ";
+    result += "?";
   }
   if (ttype->is_base_type() && tfield->get_value() != nullptr) {
     std::ofstream dummy;
@@ -4257,7 +4249,7 @@ string t_kotlin_generator::declare_field(t_field *tfield, bool comment, bool las
         result += " = 0.0";
         break;
     }
-  } else if (ttype->is_enum()) {
+  } else if (ttype->is_enum() || is_enum_map(ttype)) {
     result += " = null";
   } else {
     result += " = " + type_name(ttype, false, true) + "()";
@@ -4285,15 +4277,17 @@ string t_kotlin_generator::declare_field(t_field *tfield, bool comment, bool las
 string t_kotlin_generator::function_signature(t_function *tfunction, string prefix) {
   t_type *ttype = tfunction->get_returntype();
   std::string fn_name = get_rpc_method_name(tfunction->get_name());
-  std::string result = type_name(ttype) + " " + prefix + fn_name + "("
-                       + argument_list(tfunction->get_arglist()) + ") throws ";
+  std::string result = prefix + fn_name + "("
+                       + argument_list(tfunction->get_arglist()) + ")";
+  if(!tfunction->get_returntype()->is_void()) {
+     result += ":" + type_name(ttype);
+  }
   t_struct *xs = tfunction->get_xceptions();
   const std::vector<t_field *> &xceptions = xs->get_members();
   vector<t_field *>::const_iterator x_iter;
   for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
     result += type_name((*x_iter)->get_type(), false, false) + ", ";
   }
-  result += "org.apache.thrift.TException";
   return result;
 }
 
@@ -4306,7 +4300,7 @@ string t_kotlin_generator::function_signature(t_function *tfunction, string pref
 string t_kotlin_generator::function_signature_async(t_function *tfunction,
                                                     bool use_base_method,
                                                     string prefix) {
-  std::string arglist = async_function_call_arglist(tfunction, use_base_method, true);
+  std::string arglist = argument_list(tfunction->get_arglist(), true);
 
   std::string ret_type = "";
   if (use_base_method) {
@@ -4316,26 +4310,8 @@ string t_kotlin_generator::function_signature_async(t_function *tfunction,
 
   std::string fn_name = get_rpc_method_name(tfunction->get_name());
 
-  std::string result = prefix + "void " + fn_name + "(" + arglist + ")";
+  std::string result = prefix + fn_name + "(" + arglist + "): " + type_name(tfunction->get_returntype(), true);
   return result;
-}
-
-string t_kotlin_generator::async_function_call_arglist(t_function *tfunc,
-                                                       bool use_base_method,
-                                                       bool include_types) {
-  (void) use_base_method;
-  std::string arglist = "";
-  if (tfunc->get_arglist()->get_members().size() > 0) {
-    arglist = argument_list(tfunc->get_arglist(), include_types) + ", ";
-  }
-
-  if (include_types) {
-    arglist += "org.apache.thrift.async.AsyncMethodCallback<";
-    arglist += type_name(tfunc->get_returntype(), true) + "> ";
-  }
-  arglist += "resultHandler";
-
-  return arglist;
 }
 
 /**
@@ -4353,43 +4329,11 @@ string t_kotlin_generator::argument_list(t_struct *tstruct, bool include_types) 
     } else {
       result += ", ";
     }
-    if (include_types) {
-      result += type_name((*f_iter)->get_type()) + " ";
-    }
     result += (*f_iter)->get_name();
-  }
-  return result;
-}
-
-string t_kotlin_generator::async_argument_list(t_function *tfunct,
-                                               t_struct *tstruct,
-                                               t_type *ttype,
-                                               bool include_types) {
-  (void) tfunct;
-  (void) ttype;
-  string result = "";
-  const vector<t_field *> &fields = tstruct->get_members();
-  vector<t_field *>::const_iterator f_iter;
-  bool first = true;
-  for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
-    if (first) {
-      first = false;
-    } else {
-      result += ", ";
-    }
     if (include_types) {
-      result += type_name((*f_iter)->get_type()) + " ";
+      result += ":" + type_name((*f_iter)->get_type());
     }
-    result += (*f_iter)->get_name();
   }
-  if (!first) {
-    result += ", ";
-  }
-  if (include_types) {
-    result += "org.apache.thrift.async.AsyncMethodCallback<";
-    result += type_name(tfunct->get_returntype(), true) + "> ";
-  }
-  result += "resultHandler";
   return result;
 }
 

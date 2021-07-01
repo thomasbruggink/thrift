@@ -156,7 +156,7 @@ abstract class TTransport() : Closeable {
      * buffered transport, return null.
      * @return protocol's Underlying buffer
      */
-    val buffer: ByteArray?
+    open val buffer: ByteArray?
         get() = null
 
     /**
@@ -165,7 +165,7 @@ abstract class TTransport() : Closeable {
      * @return index within the underlying buffer that specifies the next spot
      * that should be read from
      */
-    val bufferPosition: Int
+    open val bufferPosition: Int
         get() = 0
 
     /**
@@ -174,14 +174,14 @@ abstract class TTransport() : Closeable {
      * @return the number of bytes remaining in the underlying buffer. <br></br> Returns -1 if
      * this is a non-buffered transport.
      */
-    val bytesRemainingInBuffer: Int
+    open val bytesRemainingInBuffer: Int
         get() = -1
 
     /**
      * Consume len bytes from the underlying buffer.
      * @param len
      */
-    fun consumeBuffer(len: Int) {}
+    open fun consumeBuffer(len: Int) {}
     abstract val configuration: TConfiguration?
 
     @Throws(TTransportException::class)
