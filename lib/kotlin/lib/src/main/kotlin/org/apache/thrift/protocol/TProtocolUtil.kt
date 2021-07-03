@@ -61,9 +61,7 @@ object TProtocolUtil {
      * @param prot  the protocol object to read from
      * @param type  the next value will be interpreted as this TType value.
      */
-    @JvmOverloads
-    @Throws(TException::class)
-    fun skip(prot: TProtocol, type: Byte, maxDepth: Int = maxSkipDepth) {
+    suspend fun skip(prot: TProtocol, type: Byte, maxDepth: Int = maxSkipDepth) {
         if (maxDepth <= 0) {
             throw TException("Maximum skip depth exceeded")
         }
@@ -90,7 +88,7 @@ object TProtocolUtil {
             TType.MAP -> {
                 val map = prot.readMapBegin()
                 var i = 0
-                while (i < map!!.size) {
+                while (i < map.size) {
                     skip(prot, map.keyType, maxDepth - 1)
                     skip(prot, map.valueType, maxDepth - 1)
                     i++
@@ -100,7 +98,7 @@ object TProtocolUtil {
             TType.SET -> {
                 val set = prot.readSetBegin()
                 var i = 0
-                while (i < set!!.size) {
+                while (i < set.size) {
                     skip(prot, set.elemType, maxDepth - 1)
                     i++
                 }
@@ -109,7 +107,7 @@ object TProtocolUtil {
             TType.LIST -> {
                 val list = prot.readListBegin()
                 var i = 0
-                while (i < list!!.size) {
+                while (i < list.size) {
                     skip(prot, list.elemType, maxDepth - 1)
                     i++
                 }
@@ -142,7 +140,7 @@ object TProtocolUtil {
         // It could not be a TCompactBinary encoding for a field of type 0xb (Map)
         // with delta id 7 as the last byte for TCompactBinary is always 0.
         //
-        if ('{'.toByte() == data[0] && '}'.toByte() == data[data.size - 1]) {
+        if ('{'.code == data[0].toInt() && '}'.code == data[data.size - 1].toInt()) {
             return TJSONProtocol.Factory()
         }
 

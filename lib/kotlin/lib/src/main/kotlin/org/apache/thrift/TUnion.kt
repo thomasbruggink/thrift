@@ -128,7 +128,7 @@ abstract class TUnion<T : TUnion<T, F>, F : TFieldIdEnum> protected constructor(
     }
 
     @Throws(TException::class)
-    override fun read(iprot: TProtocol) {
+    override suspend fun read(iprot: TProtocol) {
         schemes[iprot.scheme]!!.getScheme().read(iprot, this as T)
     }
 
@@ -143,7 +143,7 @@ abstract class TUnion<T : TUnion<T, F>, F : TFieldIdEnum> protected constructor(
     }
 
     @Throws(TException::class)
-    override fun write(oprot: TProtocol) {
+    override suspend fun write(oprot: TProtocol) {
         schemes[oprot.scheme]!!.getScheme().write(oprot, this as T)
     }
 
@@ -163,16 +163,16 @@ abstract class TUnion<T : TUnion<T, F>, F : TFieldIdEnum> protected constructor(
      * @return read Object based on the field header, as specified by the argument.
      */
     @Throws(TException::class)
-    protected abstract fun standardSchemeReadValue(iprot: TProtocol, field: TField): Any?
+    protected abstract suspend fun standardSchemeReadValue(iprot: TProtocol, field: TField): Any?
 
     @Throws(TException::class)
-    protected abstract fun standardSchemeWriteValue(oprot: TProtocol)
+    protected abstract suspend fun standardSchemeWriteValue(oprot: TProtocol)
 
     @Throws(TException::class)
-    protected abstract fun tupleSchemeReadValue(iprot: TProtocol, fieldID: Short): Any?
+    protected abstract suspend fun tupleSchemeReadValue(iprot: TProtocol, fieldID: Short): Any?
 
     @Throws(TException::class)
-    protected abstract fun tupleSchemeWriteValue(oprot: TProtocol)
+    protected abstract suspend fun tupleSchemeWriteValue(oprot: TProtocol)
     protected abstract fun getStructDesc(): TStruct?
 
     protected abstract fun getFieldDesc(setField: F?): TField
@@ -210,7 +210,7 @@ abstract class TUnion<T : TUnion<T, F>, F : TFieldIdEnum> protected constructor(
 
     private class TUnionStandardScheme<T : TUnion<T, F>, F : TFieldIdEnum> : StandardScheme<T>() {
         @Throws(TException::class)
-        override fun read(iprot: TProtocol, struct: T) {
+        override suspend fun read(iprot: TProtocol, struct: T) {
             struct.uSetField = null
             struct.uFieldValue = null
             iprot.readStructBegin()
@@ -228,7 +228,7 @@ abstract class TUnion<T : TUnion<T, F>, F : TFieldIdEnum> protected constructor(
         }
 
         @Throws(TException::class)
-        override fun write(oprot: TProtocol, struct: T) {
+        override suspend fun write(oprot: TProtocol, struct: T) {
             if (struct.uSetField == null || struct.uFieldValue == null) {
                 throw TProtocolException("Cannot write a TUnion with no set value!")
             }
@@ -250,7 +250,7 @@ abstract class TUnion<T : TUnion<T, F>, F : TFieldIdEnum> protected constructor(
 
     private class TUnionTupleScheme<T : TUnion<T, F>, F : TFieldIdEnum> : TupleScheme<T>() {
         @Throws(TException::class)
-        override fun read(iprot: TProtocol, struct: T) {
+        override suspend fun read(iprot: TProtocol, struct: T) {
             struct.uSetField = null
             struct.uFieldValue = null
             val fieldID = iprot.readI16()
@@ -261,7 +261,7 @@ abstract class TUnion<T : TUnion<T, F>, F : TFieldIdEnum> protected constructor(
         }
 
         @Throws(TException::class)
-        override fun write(oprot: TProtocol, struct: T) {
+        override suspend fun write(oprot: TProtocol, struct: T) {
             if (struct.uSetField == null || struct.uFieldValue == null) {
                 throw TProtocolException("Cannot write a TUnion with no set value!")
             }

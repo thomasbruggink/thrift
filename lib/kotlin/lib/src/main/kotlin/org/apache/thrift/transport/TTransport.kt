@@ -1,5 +1,7 @@
 package org.apache.thrift.transport
 
+import kotlinx.coroutines.Job
+import org.apache.thrift.AsyncClosable
 import org.apache.thrift.TConfiguration
 import java.io.Closeable
 import java.nio.ByteBuffer
@@ -9,7 +11,7 @@ import java.nio.ByteBuffer
  * wrapper around the combined functionality of Java input/output streams.
  *
  */
-abstract class TTransport() : Closeable {
+abstract class TTransport : AsyncClosable {
     /**
      * Queries whether the transport is open.
      *
@@ -32,12 +34,12 @@ abstract class TTransport() : Closeable {
      * @throws TTransportException if the transport could not be opened
      */
     @Throws(TTransportException::class)
-    abstract fun open()
+    abstract suspend fun open()
 
     /**
      * Closes the transport.
-     */
-    abstract override fun close()
+    */
+    abstract override suspend fun close()
 
     /**
      * Reads a sequence of bytes from this channel into the given buffer. An
@@ -53,7 +55,7 @@ abstract class TTransport() : Closeable {
      * @throws TTransportException if there was an error reading data
      */
     @Throws(TTransportException::class)
-    fun read(dst: ByteBuffer): Int {
+    suspend fun read(dst: ByteBuffer): Int {
         val arr = ByteArray(dst.remaining())
         val n = read(arr, 0, arr.size)
         dst.put(arr, 0, n)
@@ -70,7 +72,7 @@ abstract class TTransport() : Closeable {
      * @throws TTransportException if there was an error reading data
      */
     @Throws(TTransportException::class)
-    abstract fun read(buf: ByteArray?, off: Int, len: Int): Int
+    abstract suspend fun read(buf: ByteArray, off: Int, len: Int): Int
 
     /**
      * Guarantees that all of len bytes are actually read off the transport.
@@ -82,7 +84,7 @@ abstract class TTransport() : Closeable {
      * @throws TTransportException if there was an error reading data
      */
     @Throws(TTransportException::class)
-    fun readAll(buf: ByteArray?, off: Int, len: Int): Int {
+    suspend fun readAll(buf: ByteArray, off: Int, len: Int): Int {
         var got = 0
         var ret: Int
         while (got < len) {
@@ -108,7 +110,7 @@ abstract class TTransport() : Closeable {
      * @throws TTransportException if an error occurs writing data
      */
     @Throws(TTransportException::class)
-    fun write(buf: ByteArray) {
+    suspend fun write(buf: ByteArray) {
         write(buf, 0, buf.size)
     }
 
@@ -121,7 +123,7 @@ abstract class TTransport() : Closeable {
      * @throws TTransportException if there was an error writing data
      */
     @Throws(TTransportException::class)
-    abstract fun write(buf: ByteArray?, off: Int, len: Int)
+    abstract suspend fun write(buf: ByteArray, off: Int, len: Int)
 
     /**
      * Writes a sequence of bytes to the buffer. An attempt is made to write all
@@ -135,7 +137,7 @@ abstract class TTransport() : Closeable {
      * @throws TTransportException if there was an error writing data
      */
     @Throws(TTransportException::class)
-    fun write(src: ByteBuffer): Int {
+    suspend fun write(src: ByteBuffer): Int {
         val arr = ByteArray(src.remaining())
         src.get(arr)
         write(arr, 0, arr.size)
@@ -148,7 +150,7 @@ abstract class TTransport() : Closeable {
      * @throws TTransportException if there was an error writing out data.
      */
     @Throws(TTransportException::class)
-    open fun flush() {
+    open suspend fun flush() {
     }
 
     /**
@@ -181,8 +183,8 @@ abstract class TTransport() : Closeable {
      * Consume len bytes from the underlying buffer.
      * @param len
      */
-    open fun consumeBuffer(len: Int) {}
-    abstract val configuration: TConfiguration?
+    open suspend fun consumeBuffer(len: Int) {}
+    abstract val configuration: TConfiguration
 
     @Throws(TTransportException::class)
     abstract fun updateKnownMessageSize(size: Long)

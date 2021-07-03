@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.thrift.async
+package org.apache.thrift
 
-import org.apache.thrift.TApplicationException
-import org.apache.thrift.TBase
-import org.apache.thrift.TException
+import kotlinx.coroutines.runBlocking
 import org.apache.thrift.protocol.TMessage
 import org.apache.thrift.protocol.TMessageType
 import org.apache.thrift.protocol.TProtocol
 
-abstract class TAsyncClient(
+/**
+ * A TServiceClient is used to communicate with a TService implementation
+ * across protocols and transports.
+ */
+abstract class TServiceClient(
         /**
          * Get the TProtocol being used as the input (read) protocol.
          * @return the TProtocol being used as the input (read) protocol.
@@ -42,17 +44,17 @@ abstract class TAsyncClient(
     protected var seqid_ = 0
 
     @Throws(TException::class)
-    protected suspend fun sendBase(methodName: String, args: TBase<*, *>) {
+    protected fun sendBase(methodName: String, args: TBase<*, *>) {
         sendBase(methodName, args, TMessageType.CALL)
     }
 
     @Throws(TException::class)
-    protected suspend fun sendBaseOneway(methodName: String, args: TBase<*, *>) {
+    protected fun sendBaseOneway(methodName: String, args: TBase<*, *>) {
         sendBase(methodName, args, TMessageType.ONEWAY)
     }
 
     @Throws(TException::class)
-    private suspend fun sendBase(methodName: String, args: TBase<*, *>, type: Byte) {
+    private fun sendBase(methodName: String, args: TBase<*, *>, type: Byte) = runBlocking {
         outputProtocol.writeMessageBegin(TMessage(methodName, type, ++seqid_))
         args.write(outputProtocol)
         outputProtocol.writeMessageEnd()
@@ -60,7 +62,7 @@ abstract class TAsyncClient(
     }
 
     @Throws(TException::class)
-    protected suspend fun receiveBase(result: TBase<*, *>, methodName: String?) {
+    protected fun receiveBase(result: TBase<*, *>, methodName: String?) = runBlocking {
         val msg = inputProtocol.readMessageBegin()
         if (msg.type == TMessageType.EXCEPTION) {
             val x = TApplicationException()

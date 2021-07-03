@@ -26,9 +26,9 @@ import java.nio.charset.Charset
  * copies on it.
  *
  */
-class TByteArrayOutputStream @JvmOverloads constructor(private val initialSize: Int = 32) : ByteArrayOutputStream(
-    initialSize
-) {
+class TByteArrayOutputStream constructor(
+        private val initialSize: Int = 32
+) : ByteArrayOutputStream(initialSize) {
     fun get(): ByteArray {
         return buf
     }

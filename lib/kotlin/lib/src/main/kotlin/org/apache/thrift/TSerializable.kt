@@ -13,7 +13,7 @@ interface TSerializable {
      * @param iprot Input protocol
      */
     @Throws(TException::class)
-    fun read(iprot: TProtocol)
+    suspend fun read(iprot: TProtocol)
 
     /**
      * Writes the objects out to the protocol
@@ -21,6 +21,6 @@ interface TSerializable {
      * @param oprot Output protocol
      */
     @Throws(TException::class)
-    fun write(oprot: TProtocol)
+    suspend fun write(oprot: TProtocol)
 }
 

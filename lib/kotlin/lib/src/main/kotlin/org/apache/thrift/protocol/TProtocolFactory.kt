@@ -25,5 +25,5 @@ import java.io.Serializable
  * Factory interface for constructing protocol instances.
  */
 interface TProtocolFactory : Serializable {
-    fun getProtocol(trans: TTransport?): TProtocol
+    fun getProtocol(trans: TTransport): TProtocol
 }

@@ -10,44 +10,32 @@ import java.nio.ByteBuffer
  * Protocol interface definition.
  *
  */
-abstract class TProtocol {
-    /**
-     * Prevent direct instantiation
-     */
-    private constructor() {}
-
-    /**
-     * Transport
-     */
-    protected var trans_: TTransport? = null
-
-    /**
-     * Constructor
-     */
-    protected constructor(trans: TTransport?) {
-        trans_ = trans
-    }
-
+abstract class TProtocol protected constructor(
+        /**
+         * Transport
+         */
+        protected val trans_: TTransport
+) {
     /**
      * Transport accessor
      */
-    val transport: TTransport?
+    val transport: TTransport
         get() = trans_
 
     @Throws(TException::class)
     protected fun checkReadBytesAvailable(map: TMap) {
         val elemSize = (getMinSerializedSize(map.keyType) + getMinSerializedSize(map.valueType)).toLong()
-        trans_?.checkReadBytesAvailable(map.size * elemSize)
+        trans_.checkReadBytesAvailable(map.size * elemSize)
     }
 
     @Throws(TException::class)
     protected fun checkReadBytesAvailable(list: TList) {
-        trans_?.checkReadBytesAvailable((list.size * getMinSerializedSize(list.elemType).toLong()))
+        trans_.checkReadBytesAvailable((list.size * getMinSerializedSize(list.elemType).toLong()))
     }
 
     @Throws(TException::class)
     protected fun checkReadBytesAvailable(set: TSet) {
-        trans_?.checkReadBytesAvailable((set.size * getMinSerializedSize(set.elemType).toLong()))
+        trans_.checkReadBytesAvailable((set.size * getMinSerializedSize(set.elemType).toLong()))
     }
 
     /**
@@ -63,91 +51,91 @@ abstract class TProtocol {
      * Writing methods.
      */
     @Throws(TException::class)
-    abstract fun writeMessageBegin(message: TMessage?)
+    abstract suspend fun writeMessageBegin(message: TMessage?)
     @Throws(TException::class)
-    abstract fun writeMessageEnd()
+    abstract suspend fun writeMessageEnd()
     @Throws(TException::class)
-    abstract fun writeStructBegin(struct: TStruct?)
+    abstract suspend fun writeStructBegin(struct: TStruct?)
     @Throws(TException::class)
-    abstract fun writeStructEnd()
+    abstract suspend fun writeStructEnd()
     @Throws(TException::class)
-    abstract fun writeFieldBegin(field: TField?)
+    abstract suspend fun writeFieldBegin(field: TField?)
     @Throws(TException::class)
-    abstract fun writeFieldEnd()
+    abstract suspend fun writeFieldEnd()
     @Throws(TException::class)
-    abstract fun writeFieldStop()
+    abstract suspend fun writeFieldStop()
     @Throws(TException::class)
-    abstract fun writeMapBegin(map: TMap?)
+    abstract suspend fun writeMapBegin(map: TMap?)
     @Throws(TException::class)
-    abstract fun writeMapEnd()
+    abstract suspend fun writeMapEnd()
     @Throws(TException::class)
-    abstract fun writeListBegin(list: TList?)
+    abstract suspend fun writeListBegin(list: TList?)
     @Throws(TException::class)
-    abstract fun writeListEnd()
+    abstract suspend fun writeListEnd()
     @Throws(TException::class)
-    abstract fun writeSetBegin(set: TSet?)
+    abstract suspend fun writeSetBegin(set: TSet?)
     @Throws(TException::class)
-    abstract fun writeSetEnd()
+    abstract suspend fun writeSetEnd()
     @Throws(TException::class)
-    abstract fun writeBool(b: Boolean)
+    abstract suspend fun writeBool(b: Boolean)
     @Throws(TException::class)
-    abstract fun writeByte(b: Byte)
+    abstract suspend fun writeByte(b: Byte)
     @Throws(TException::class)
-    abstract fun writeI16(i16: Short)
+    abstract suspend fun writeI16(i16: Short)
     @Throws(TException::class)
-    abstract fun writeI32(i32: Int)
+    abstract suspend fun writeI32(i32: Int)
     @Throws(TException::class)
-    abstract fun writeI64(i64: Long)
+    abstract suspend fun writeI64(i64: Long)
     @Throws(TException::class)
-    abstract fun writeDouble(dub: Double)
+    abstract suspend fun writeDouble(dub: Double)
     @Throws(TException::class)
-    abstract fun writeString(str: String?)
+    abstract suspend fun writeString(str: String?)
     @Throws(TException::class)
-    abstract fun writeBinary(buf: ByteBuffer?)
+    abstract suspend fun writeBinary(buf: ByteBuffer?)
 
     /**
      * Reading methods.
      */
     @Throws(TException::class)
-    abstract fun readMessageBegin(): TMessage
+    abstract suspend fun readMessageBegin(): TMessage
     @Throws(TException::class)
-    abstract fun readMessageEnd()
+    abstract suspend fun readMessageEnd()
     @Throws(TException::class)
-    abstract fun readStructBegin(): TStruct
+    abstract suspend fun readStructBegin(): TStruct
     @Throws(TException::class)
-    abstract fun readStructEnd()
+    abstract suspend fun readStructEnd()
     @Throws(TException::class)
-    abstract fun readFieldBegin(): TField
+    abstract suspend fun readFieldBegin(): TField
     @Throws(TException::class)
-    abstract fun readFieldEnd()
+    abstract suspend fun readFieldEnd()
     @Throws(TException::class)
-    abstract fun readMapBegin(): TMap
+    abstract suspend fun readMapBegin(): TMap
     @Throws(TException::class)
-    abstract fun readMapEnd()
+    abstract suspend fun readMapEnd()
     @Throws(TException::class)
-    abstract fun readListBegin(): TList
+    abstract suspend fun readListBegin(): TList
     @Throws(TException::class)
-    abstract fun readListEnd()
+    abstract suspend fun readListEnd()
     @Throws(TException::class)
-    abstract fun readSetBegin(): TSet
+    abstract suspend fun readSetBegin(): TSet
     @Throws(TException::class)
-    abstract fun readSetEnd()
+    abstract suspend fun readSetEnd()
     @Throws(TException::class)
-    abstract fun readBool(): Boolean
+    abstract suspend fun readBool(): Boolean
     @Throws(TException::class)
-    abstract fun readByte(): Byte
+    abstract suspend fun readByte(): Byte
     @Throws(TException::class)
-    abstract fun readI16(): Short
+    abstract suspend fun readI16(): Short
     @Throws(TException::class)
-    abstract fun readI32(): Int
+    abstract suspend fun readI32(): Int
     @Throws(TException::class)
-    abstract fun readI64(): Long
+    abstract suspend fun readI64(): Long
     @Throws(TException::class)
-    abstract fun readDouble(): Double
+    abstract suspend fun readDouble(): Double
     @Throws(TException::class)
-    abstract fun readString(): String
+    abstract suspend fun readString(): String
     @Throws(TException::class)
-    abstract fun readBinary(): ByteBuffer
+    abstract suspend fun readBinary(): ByteBuffer
 
     /**
      * Reset any internal state back to a blank slate. This method only needs to

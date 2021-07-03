@@ -18,15 +18,20 @@
  */
 package org.apache.thrift.protocol
 
-import org.apache.thrift.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.apache.thrift.TByteArrayOutputStream
+import org.apache.thrift.TException
 import org.apache.thrift.and
 import org.apache.thrift.plus
+import org.apache.thrift.shl
+import org.apache.thrift.shr
 import org.apache.thrift.transport.TTransport
 import org.apache.thrift.transport.TTransportException
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
-import java.util.*
+import java.util.Stack
 
 /**
  * JSON protocol implementation for thrift.
@@ -37,20 +42,17 @@ import java.util.*
  * protocol's wire format.
  *
  */
-class TJSONProtocol : TProtocol {
+class TJSONProtocol(
+        trans: TTransport
+) : TProtocol(trans) {
     /**
      * Factory for JSON protocol objects
      */
-    class Factory : TProtocolFactory {
-        protected var fieldNamesAsString_ = false
-
-        constructor() {}
-        constructor(fieldNamesAsString: Boolean) {
-            fieldNamesAsString_ = fieldNamesAsString
-        }
-
-        override fun getProtocol(trans: TTransport?): TProtocol {
-            return TJSONProtocol(trans, fieldNamesAsString_)
+    class Factory(
+            private val fieldNamesAsString: Boolean = false
+    ) : TProtocolFactory {
+        override fun getProtocol(trans: TTransport): TProtocol {
+            return TJSONProtocol(trans, fieldNamesAsString)
         }
     }
 
@@ -59,11 +61,11 @@ class TJSONProtocol : TProtocol {
     // This base context does nothing.
     protected open inner class JSONBaseContext {
         @Throws(TException::class)
-        open fun write() {
+        open suspend fun write() {
         }
 
         @Throws(TException::class)
-        open fun read() {
+        open suspend fun read() {
         }
 
         open fun escapeNum(): Boolean {
@@ -77,16 +79,16 @@ class TJSONProtocol : TProtocol {
         private var first_ = true
 
         @Throws(TException::class)
-        override fun write() {
+        override suspend fun write() {
             if (first_) {
                 first_ = false
             } else {
-                trans_!!.write(COMMA)
+                trans_.write(COMMA)
             }
         }
 
         @Throws(TException::class)
-        override fun read() {
+        override suspend fun read() {
             if (first_) {
                 first_ = false
             } else {
@@ -104,18 +106,18 @@ class TJSONProtocol : TProtocol {
         private var colon_ = true
 
         @Throws(TException::class)
-        override fun write() {
+        override suspend fun write() {
             if (first_) {
                 first_ = false
                 colon_ = true
             } else {
-                trans_!!.write(if (colon_) COLON else COMMA)
+                trans_.write(if (colon_) COLON else COMMA)
                 colon_ = !colon_
             }
         }
 
         @Throws(TException::class)
-        override fun read() {
+        override suspend fun read() {
             if (first_) {
                 first_ = false
                 colon_ = true
@@ -138,11 +140,11 @@ class TJSONProtocol : TProtocol {
         // Return and consume the next byte to be read, either taking it from the
         // data buffer if present or getting it from the transport otherwise.
         @Throws(TException::class)
-        fun read(): Byte {
+        suspend fun read(): Byte {
             if (hasData_) {
                 hasData_ = false
             } else {
-                trans_!!.readAll(data_, 0, 1)
+                trans_.readAll(data_, 0, 1)
             }
             return data_[0]
         }
@@ -150,9 +152,9 @@ class TJSONProtocol : TProtocol {
         // Return the next byte to be read without consuming, filling the data
         // buffer if it has not been filled already.
         @Throws(TException::class)
-        fun peek(): Byte {
+        suspend fun peek(): Byte {
             if (!hasData_) {
-                trans_!!.readAll(data_, 0, 1)
+                trans_.readAll(data_, 0, 1)
             }
             hasData_ = true
             return data_[0]
@@ -192,8 +194,7 @@ class TJSONProtocol : TProtocol {
     /**
      * Constructor
      */
-    constructor(trans: TTransport?) : super(trans) {}
-    constructor(trans: TTransport?, fieldNamesAsString: Boolean) : super(trans) {
+    constructor(trans: TTransport, fieldNamesAsString: Boolean) : this(trans) {
         fieldNamesAsString_ = fieldNamesAsString
     }
 
@@ -210,69 +211,69 @@ class TJSONProtocol : TProtocol {
     // Marked protected to avoid synthetic accessor in JSONListContext.read
     // and JSONPairContext.read
     @Throws(TException::class)
-    protected fun readJSONSyntaxChar(b: ByteArray) {
+    protected suspend fun readJSONSyntaxChar(b: ByteArray) {
         val ch = reader_.read()
         if (ch != b[0]) {
             throw TProtocolException(
-                TProtocolException.INVALID_DATA,
-                "Unexpected character:" + ch.toChar()
+                    TProtocolException.INVALID_DATA,
+                    "Unexpected character:" + ch.toChar()
             )
         }
     }
 
     // Write the bytes in array buf as a JSON characters, escaping as needed
     @Throws(TException::class)
-    private fun writeJSONString(b: ByteArray) {
+    private suspend fun writeJSONString(b: ByteArray) {
         context_.write()
-        trans_!!.write(QUOTE)
+        trans_.write(QUOTE)
         val len = b.size
         for (i in 0 until len) {
             if (b[i] and 0x00FF >= 0x30) {
                 if (b[i] == BACKSLASH[0]) {
-                    trans_!!.write(BACKSLASH)
-                    trans_!!.write(BACKSLASH)
+                    trans_.write(BACKSLASH)
+                    trans_.write(BACKSLASH)
                 } else {
-                    trans_!!.write(b, i, 1)
+                    trans_.write(b, i, 1)
                 }
             } else {
                 tmpbuf_[0] = JSON_CHAR_TABLE[b[i].toInt()]
                 if (tmpbuf_[0] == 1.toByte()) {
-                    trans_!!.write(b, i, 1)
+                    trans_.write(b, i, 1)
                 } else if (tmpbuf_[0] > 1) {
-                    trans_!!.write(BACKSLASH)
-                    trans_!!.write(tmpbuf_, 0, 1)
+                    trans_.write(BACKSLASH)
+                    trans_.write(tmpbuf_, 0, 1)
                 } else {
-                    trans_!!.write(ESCSEQ)
+                    trans_.write(ESCSEQ)
                     tmpbuf_[0] = hexChar((b[i] shr 4))
                     tmpbuf_[1] = hexChar(b[i])
-                    trans_!!.write(tmpbuf_, 0, 2)
+                    trans_.write(tmpbuf_, 0, 2)
                 }
             }
         }
-        trans_!!.write(QUOTE)
+        trans_.write(QUOTE)
     }
 
     // Write out number as a JSON value. If the context dictates so, it will be
     // wrapped in quotes to output as a JSON string.
     @Throws(TException::class)
-    private fun writeJSONInteger(num: Long) {
+    private suspend fun writeJSONInteger(num: Long) {
         context_.write()
         val str = java.lang.Long.toString(num)
         val escapeNum = context_.escapeNum()
         if (escapeNum) {
-            trans_!!.write(QUOTE)
+            trans_.write(QUOTE)
         }
         val buf = str.toByteArray(StandardCharsets.UTF_8)
-        trans_!!.write(buf)
+        trans_.write(buf)
         if (escapeNum) {
-            trans_!!.write(QUOTE)
+            trans_.write(QUOTE)
         }
     }
 
     // Write out a double as a JSON value. If it is NaN or infinity or if the
     // context dictates escaping, write out as JSON string.
     @Throws(TException::class)
-    private fun writeJSONDouble(num: Double) {
+    private suspend fun writeJSONDouble(num: Double) {
         context_.write()
         val str = java.lang.Double.toString(num)
         var special = false
@@ -286,66 +287,66 @@ class TJSONProtocol : TProtocol {
         }
         val escapeNum = special || context_.escapeNum()
         if (escapeNum) {
-            trans_!!.write(QUOTE)
+            trans_.write(QUOTE)
         }
         val b = str.toByteArray(StandardCharsets.UTF_8)
-        trans_!!.write(b, 0, b.size)
+        trans_.write(b, 0, b.size)
         if (escapeNum) {
-            trans_!!.write(QUOTE)
+            trans_.write(QUOTE)
         }
     }
 
     // Write out contents of byte array b as a JSON string with base-64 encoded
     // data
     @Throws(TException::class)
-    private fun writeJSONBase64(b: ByteArray, offset: Int, length: Int) {
+    private suspend fun writeJSONBase64(b: ByteArray, offset: Int, length: Int) {
         context_.write()
-        trans_!!.write(QUOTE)
+        trans_.write(QUOTE)
         var len = length
         var off = offset
         while (len >= 3) {
             // Encode 3 bytes at a time
             TBase64Utils.encode(b, off, 3, tmpbuf_, 0)
-            trans_!!.write(tmpbuf_, 0, 4)
+            trans_.write(tmpbuf_, 0, 4)
             off += 3
             len -= 3
         }
         if (len > 0) {
             // Encode remainder
             TBase64Utils.encode(b, off, len, tmpbuf_, 0)
-            trans_!!.write(tmpbuf_, 0, len + 1)
+            trans_.write(tmpbuf_, 0, len + 1)
         }
-        trans_!!.write(QUOTE)
+        trans_.write(QUOTE)
     }
 
     @Throws(TException::class)
-    private fun writeJSONObjectStart() {
+    private suspend fun writeJSONObjectStart() {
         context_.write()
-        trans_!!.write(LBRACE)
+        trans_.write(LBRACE)
         pushContext(JSONPairContext())
     }
 
     @Throws(TException::class)
-    private fun writeJSONObjectEnd() {
+    private suspend fun writeJSONObjectEnd() {
         popContext()
-        trans_!!.write(RBRACE)
+        trans_.write(RBRACE)
     }
 
     @Throws(TException::class)
-    private fun writeJSONArrayStart() {
+    private suspend fun writeJSONArrayStart() {
         context_.write()
-        trans_!!.write(LBRACKET)
+        trans_.write(LBRACKET)
         pushContext(JSONListContext())
     }
 
     @Throws(TException::class)
-    private fun writeJSONArrayEnd() {
+    private suspend fun writeJSONArrayEnd() {
         popContext()
-        trans_!!.write(RBRACKET)
+        trans_.write(RBRACKET)
     }
 
     @Throws(TException::class)
-    override fun writeMessageBegin(message: TMessage?) {
+    override suspend fun writeMessageBegin(message: TMessage?) {
         resetContext() // THRIFT-3743
         writeJSONArrayStart()
         writeJSONInteger(VERSION)
@@ -356,22 +357,22 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun writeMessageEnd() {
+    override suspend fun writeMessageEnd() {
         writeJSONArrayEnd()
     }
 
     @Throws(TException::class)
-    override fun writeStructBegin(struct: TStruct?) {
+    override suspend fun writeStructBegin(struct: TStruct?) {
         writeJSONObjectStart()
     }
 
     @Throws(TException::class)
-    override fun writeStructEnd() {
+    override suspend fun writeStructEnd() {
         writeJSONObjectEnd()
     }
 
     @Throws(TException::class)
-    override fun writeFieldBegin(field: TField?) {
+    override suspend fun writeFieldBegin(field: TField?) {
         if (fieldNamesAsString_) {
             writeString(field!!.name)
         } else {
@@ -382,14 +383,14 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun writeFieldEnd() {
+    override suspend fun writeFieldEnd() {
         writeJSONObjectEnd()
     }
 
-    override fun writeFieldStop() {}
+    override suspend fun writeFieldStop() {}
 
     @Throws(TException::class)
-    override fun writeMapBegin(map: TMap?) {
+    override suspend fun writeMapBegin(map: TMap?) {
         writeJSONArrayStart()
         writeJSONString(getTypeNameForTypeID(map!!.keyType))
         writeJSONString(getTypeNameForTypeID(map.valueType))
@@ -398,77 +399,77 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun writeMapEnd() {
+    override suspend fun writeMapEnd() {
         writeJSONObjectEnd()
         writeJSONArrayEnd()
     }
 
     @Throws(TException::class)
-    override fun writeListBegin(list: TList?) {
+    override suspend fun writeListBegin(list: TList?) {
         writeJSONArrayStart()
         writeJSONString(getTypeNameForTypeID(list!!.elemType))
         writeJSONInteger(list.size.toLong())
     }
 
     @Throws(TException::class)
-    override fun writeListEnd() {
+    override suspend fun writeListEnd() {
         writeJSONArrayEnd()
     }
 
     @Throws(TException::class)
-    override fun writeSetBegin(set: TSet?) {
+    override suspend fun writeSetBegin(set: TSet?) {
         writeJSONArrayStart()
         writeJSONString(getTypeNameForTypeID(set!!.elemType))
         writeJSONInteger(set.size.toLong())
     }
 
     @Throws(TException::class)
-    override fun writeSetEnd() {
+    override suspend fun writeSetEnd() {
         writeJSONArrayEnd()
     }
 
     @Throws(TException::class)
-    override fun writeBool(b: Boolean) {
+    override suspend fun writeBool(b: Boolean) {
         writeJSONInteger(if (b) 1.toLong() else 0.toLong())
     }
 
     @Throws(TException::class)
-    override fun writeByte(b: Byte) {
+    override suspend fun writeByte(b: Byte) {
         writeJSONInteger(b.toLong())
     }
 
     @Throws(TException::class)
-    override fun writeI16(i16: Short) {
+    override suspend fun writeI16(i16: Short) {
         writeJSONInteger(i16.toLong())
     }
 
     @Throws(TException::class)
-    override fun writeI32(i32: Int) {
+    override suspend fun writeI32(i32: Int) {
         writeJSONInteger(i32.toLong())
     }
 
     @Throws(TException::class)
-    override fun writeI64(i64: Long) {
+    override suspend fun writeI64(i64: Long) {
         writeJSONInteger(i64)
     }
 
     @Throws(TException::class)
-    override fun writeDouble(dub: Double) {
+    override suspend fun writeDouble(dub: Double) {
         writeJSONDouble(dub)
     }
 
     @Throws(TException::class)
-    override fun writeString(str: String?) {
+    override suspend fun writeString(str: String?) {
         val b = str!!.toByteArray(StandardCharsets.UTF_8)
         writeJSONString(b)
     }
 
     @Throws(TException::class)
-    override fun writeBinary(bin: ByteBuffer?) {
+    override suspend fun writeBinary(bin: ByteBuffer?) {
         writeJSONBase64(
-            bin!!.array(),
-            bin.position() + bin.arrayOffset(),
-            bin.limit() - bin.position() - bin.arrayOffset()
+                bin!!.array(),
+                bin.position() + bin.arrayOffset(),
+                bin.limit() - bin.position() - bin.arrayOffset()
         )
     }
 
@@ -478,7 +479,7 @@ class TJSONProtocol : TProtocol {
     // Read in a JSON string, unescaping as appropriate.. Skip reading from the
     // context if skipContext is true.
     @Throws(TException::class)
-    private fun readJSONString(skipContext: Boolean): TByteArrayOutputStream {
+    private suspend fun readJSONString(skipContext: Boolean): TByteArrayOutputStream = withContext(Dispatchers.IO) {
         val arr = TByteArrayOutputStream(DEF_STRING_SIZE)
         val codeunits = ArrayList<Char>()
         if (!skipContext) {
@@ -493,7 +494,7 @@ class TJSONProtocol : TProtocol {
             if (ch == ESCSEQ[0]) {
                 ch = reader_.read()
                 ch = if (ch == ESCSEQ[1]) {
-                    trans_!!.readAll(tmpbuf_, 0, 4)
+                    trans_.readAll(tmpbuf_, 0, 4)
                     val cu = ((hexVal(tmpbuf_[0]).toShort() shl 12) +
                             (hexVal(tmpbuf_[1]).toShort() shl 8) +
                             (hexVal(tmpbuf_[2]).toShort() shl 4) +
@@ -502,45 +503,45 @@ class TJSONProtocol : TProtocol {
                         if (Character.isHighSurrogate(cu.toChar())) {
                             if (codeunits.size > 0) {
                                 throw TProtocolException(
-                                    TProtocolException.INVALID_DATA,
-                                    "Expected low surrogate char"
+                                        TProtocolException.INVALID_DATA,
+                                        "Expected low surrogate char"
                                 )
                             }
                             codeunits.add(cu.toChar())
                         } else if (Character.isLowSurrogate(cu.toChar())) {
                             if (codeunits.size == 0) {
                                 throw TProtocolException(
-                                    TProtocolException.INVALID_DATA,
-                                    "Expected high surrogate char"
+                                        TProtocolException.INVALID_DATA,
+                                        "Expected high surrogate char"
                                 )
                             }
                             codeunits.add(cu.toChar())
                             arr.write(
-                                String(
-                                    intArrayOf(codeunits[0].toInt(), codeunits[1].toInt()),
-                                    0, 2
-                                ).toByteArray(StandardCharsets.UTF_8)
+                                    String(
+                                            intArrayOf(codeunits[0].toInt(), codeunits[1].toInt()),
+                                            0, 2
+                                    ).toByteArray(StandardCharsets.UTF_8)
                             )
                             codeunits.clear()
                         } else {
                             arr.write(
-                                String(intArrayOf(cu.toInt()), 0, 1)
-                                    .toByteArray(StandardCharsets.UTF_8)
+                                    String(intArrayOf(cu.toInt()), 0, 1)
+                                            .toByteArray(StandardCharsets.UTF_8)
                             )
                         }
                         continue
                     } catch (ex: IOException) {
                         throw TProtocolException(
-                            TProtocolException.INVALID_DATA,
-                            "Invalid unicode sequence"
+                                TProtocolException.INVALID_DATA,
+                                "Invalid unicode sequence"
                         )
                     }
                 } else {
                     val off = ESCAPE_CHARS.indexOf(ch.toChar())
                     if (off == -1) {
                         throw TProtocolException(
-                            TProtocolException.INVALID_DATA,
-                            "Expected control char"
+                                TProtocolException.INVALID_DATA,
+                                "Expected control char"
                         )
                     }
                     ESCAPE_CHAR_VALS[off]
@@ -548,7 +549,7 @@ class TJSONProtocol : TProtocol {
             }
             arr.write(ch.toInt())
         }
-        return arr
+        return@withContext arr
     }
 
     // Return true if the given byte could be a valid part of a JSON number.
@@ -562,7 +563,7 @@ class TJSONProtocol : TProtocol {
     // Read in a sequence of characters that are all valid in JSON numbers. Does
     // not do a complete regex check to validate that this is actually a number.
     @Throws(TException::class)
-    private fun readJSONNumericChars(): String {
+    private suspend fun readJSONNumericChars(): String {
         val strbld = StringBuilder()
         while (true) {
             val ch = reader_.peek()
@@ -576,7 +577,7 @@ class TJSONProtocol : TProtocol {
 
     // Read in a JSON number. If the context dictates, read in enclosing quotes.
     @Throws(TException::class)
-    private fun readJSONInteger(): Long {
+    private suspend fun readJSONInteger(): Long {
         context_.read()
         if (context_.escapeNum()) {
             readJSONSyntaxChar(QUOTE)
@@ -589,8 +590,8 @@ class TJSONProtocol : TProtocol {
             java.lang.Long.valueOf(str)
         } catch (ex: NumberFormatException) {
             throw TProtocolException(
-                TProtocolException.INVALID_DATA,
-                "Bad data encounted in numeric data"
+                    TProtocolException.INVALID_DATA,
+                    "Bad data encounted in numeric data"
             )
         }
     }
@@ -598,18 +599,18 @@ class TJSONProtocol : TProtocol {
     // Read in a JSON double value. Throw if the value is not wrapped in quotes
     // when expected or if wrapped in quotes when not expected.
     @Throws(TException::class)
-    private fun readJSONDouble(): Double {
+    private suspend fun readJSONDouble(): Double {
         context_.read()
         return if (reader_.peek() == QUOTE[0]) {
             val arr: TByteArrayOutputStream = readJSONString(true)
             val dub: Double = java.lang.Double.valueOf(arr.toString(StandardCharsets.UTF_8))
             if (!context_.escapeNum() && !java.lang.Double.isNaN(dub)
-                && !java.lang.Double.isInfinite(dub)
+                    && !java.lang.Double.isInfinite(dub)
             ) {
                 // Throw exception -- we should not be in a string in this case
                 throw TProtocolException(
-                    TProtocolException.INVALID_DATA,
-                    "Numeric data unexpectedly quoted"
+                        TProtocolException.INVALID_DATA,
+                        "Numeric data unexpectedly quoted"
                 )
             }
             dub
@@ -622,8 +623,8 @@ class TJSONProtocol : TProtocol {
                 java.lang.Double.valueOf(readJSONNumericChars())
             } catch (ex: NumberFormatException) {
                 throw TProtocolException(
-                    TProtocolException.INVALID_DATA,
-                    "Bad data encounted in numeric data"
+                        TProtocolException.INVALID_DATA,
+                        "Bad data encounted in numeric data"
                 )
             }
         }
@@ -631,7 +632,7 @@ class TJSONProtocol : TProtocol {
 
     // Read in a JSON string containing base-64 encoded data and decode it.
     @Throws(TException::class)
-    private fun readJSONBase64(): ByteArray {
+    private suspend fun readJSONBase64(): ByteArray {
         val arr: TByteArrayOutputStream = readJSONString(false)
         val b: ByteArray = arr.get()
         var len: Int = arr.len()
@@ -665,39 +666,39 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    private fun readJSONObjectStart() {
+    private suspend fun readJSONObjectStart() {
         context_.read()
         readJSONSyntaxChar(LBRACE)
         pushContext(JSONPairContext())
     }
 
     @Throws(TException::class)
-    private fun readJSONObjectEnd() {
+    private suspend fun readJSONObjectEnd() {
         readJSONSyntaxChar(RBRACE)
         popContext()
     }
 
     @Throws(TException::class)
-    private fun readJSONArrayStart() {
+    private suspend fun readJSONArrayStart() {
         context_.read()
         readJSONSyntaxChar(LBRACKET)
         pushContext(JSONListContext())
     }
 
     @Throws(TException::class)
-    private fun readJSONArrayEnd() {
+    private suspend fun readJSONArrayEnd() {
         readJSONSyntaxChar(RBRACKET)
         popContext()
     }
 
     @Throws(TException::class)
-    override fun readMessageBegin(): TMessage {
+    override suspend fun readMessageBegin(): TMessage {
         resetContext() // THRIFT-3743
         readJSONArrayStart()
         if (readJSONInteger() != VERSION) {
             throw TProtocolException(
-                TProtocolException.BAD_VERSION,
-                "Message contained bad version."
+                    TProtocolException.BAD_VERSION,
+                    "Message contained bad version."
             )
         }
         val name: String = readJSONString(false).toString(StandardCharsets.UTF_8)
@@ -707,23 +708,23 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readMessageEnd() {
+    override suspend fun readMessageEnd() {
         readJSONArrayEnd()
     }
 
     @Throws(TException::class)
-    override fun readStructBegin(): TStruct {
+    override suspend fun readStructBegin(): TStruct {
         readJSONObjectStart()
         return ANONYMOUS_STRUCT
     }
 
     @Throws(TException::class)
-    override fun readStructEnd() {
+    override suspend fun readStructEnd() {
         readJSONObjectEnd()
     }
 
     @Throws(TException::class)
-    override fun readFieldBegin(): TField {
+    override suspend fun readFieldBegin(): TField {
         val ch = reader_.peek()
         val type: Byte
         var id: Short = 0
@@ -738,12 +739,12 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readFieldEnd() {
+    override suspend fun readFieldEnd() {
         readJSONObjectEnd()
     }
 
     @Throws(TException::class)
-    override fun readMapBegin(): TMap {
+    override suspend fun readMapBegin(): TMap {
         readJSONArrayStart()
         val keyType = getTypeIDForTypeName(readJSONString(false).get())
         val valueType = getTypeIDForTypeName(readJSONString(false).get())
@@ -755,13 +756,13 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readMapEnd() {
+    override suspend fun readMapEnd() {
         readJSONObjectEnd()
         readJSONArrayEnd()
     }
 
     @Throws(TException::class)
-    override fun readListBegin(): TList {
+    override suspend fun readListBegin(): TList {
         readJSONArrayStart()
         val elemType = getTypeIDForTypeName(readJSONString(false).get())
         val size = readJSONInteger().toInt()
@@ -771,12 +772,12 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readListEnd() {
+    override suspend fun readListEnd() {
         readJSONArrayEnd()
     }
 
     @Throws(TException::class)
-    override fun readSetBegin(): TSet {
+    override suspend fun readSetBegin(): TSet {
         readJSONArrayStart()
         val elemType = getTypeIDForTypeName(readJSONString(false).get())
         val size = readJSONInteger().toInt()
@@ -786,47 +787,47 @@ class TJSONProtocol : TProtocol {
     }
 
     @Throws(TException::class)
-    override fun readSetEnd() {
+    override suspend fun readSetEnd() {
         readJSONArrayEnd()
     }
 
     @Throws(TException::class)
-    override fun readBool(): Boolean {
+    override suspend fun readBool(): Boolean {
         return readJSONInteger() != 0L
     }
 
     @Throws(TException::class)
-    override fun readByte(): Byte {
+    override suspend fun readByte(): Byte {
         return readJSONInteger().toByte()
     }
 
     @Throws(TException::class)
-    override fun readI16(): Short {
+    override suspend fun readI16(): Short {
         return readJSONInteger().toShort()
     }
 
     @Throws(TException::class)
-    override fun readI32(): Int {
+    override suspend fun readI32(): Int {
         return readJSONInteger().toInt()
     }
 
     @Throws(TException::class)
-    override fun readI64(): Long {
+    override suspend fun readI64(): Long {
         return readJSONInteger()
     }
 
     @Throws(TException::class)
-    override fun readDouble(): Double {
+    override suspend fun readDouble(): Double {
         return readJSONDouble()
     }
 
     @Throws(TException::class)
-    override fun readString(): String {
+    override suspend fun readString(): String {
         return readJSONString(false).toString(StandardCharsets.UTF_8)
     }
 
     @Throws(TException::class)
-    override fun readBinary(): ByteBuffer {
+    override suspend fun readBinary(): ByteBuffer {
         return ByteBuffer.wrap(readJSONBase64())
     }
 
@@ -867,20 +868,20 @@ class TJSONProtocol : TProtocol {
         private val ESCSEQ = byteArrayOf('\\'.toByte(), 'u'.toByte(), '0'.toByte(), '0'.toByte())
         private const val VERSION: Long = 1
         private val JSON_CHAR_TABLE = byteArrayOf( /*  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F */
-            0, 0, 0, 0, 0, 0, 0, 0, 'b'.toByte(), 't'.toByte(), 'n'.toByte(), 0, 'f'.toByte(), 'r'.toByte(), 0, 0,  // 0
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 1
-            1, 1, '"'.toByte(), 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+                0, 0, 0, 0, 0, 0, 0, 0, 'b'.toByte(), 't'.toByte(), 'n'.toByte(), 0, 'f'.toByte(), 'r'.toByte(), 0, 0,  // 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 1
+                1, 1, '"'.toByte(), 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
         )
         private const val ESCAPE_CHARS = "\"\\/bfnrt"
         private val ESCAPE_CHAR_VALS = byteArrayOf(
-            '"'.toByte(),
-            '\\'.toByte(),
-            '/'.toByte(),
-            '\b'.toByte(),
-            0x0C.toByte(), // form feed
-            '\n'.toByte(),
-            '\r'.toByte(),
-            '\t'.toByte()
+                '"'.toByte(),
+                '\\'.toByte(),
+                '/'.toByte(),
+                '\b'.toByte(),
+                0x0C.toByte(), // form feed
+                '\n'.toByte(),
+                '\r'.toByte(),
+                '\t'.toByte()
         )
         private const val DEF_STRING_SIZE = 16
         private val NAME_BOOL = byteArrayOf('t'.toByte(), 'f'.toByte())
@@ -911,8 +912,8 @@ class TJSONProtocol : TProtocol {
                 TType.SET -> NAME_SET
                 TType.LIST -> NAME_LIST
                 else -> throw TProtocolException(
-                    TProtocolException.NOT_IMPLEMENTED,
-                    "Unrecognized type"
+                        TProtocolException.NOT_IMPLEMENTED,
+                        "Unrecognized type"
                 )
             }
         }
@@ -942,8 +943,8 @@ class TJSONProtocol : TProtocol {
             }
             if (result == TType.STOP) {
                 throw TProtocolException(
-                    TProtocolException.NOT_IMPLEMENTED,
-                    "Unrecognized type"
+                        TProtocolException.NOT_IMPLEMENTED,
+                        "Unrecognized type"
                 )
             }
             return result
@@ -959,8 +960,8 @@ class TJSONProtocol : TProtocol {
                 (ch.toChar() - 'a' + 10).toByte()
             } else {
                 throw TProtocolException(
-                    TProtocolException.INVALID_DATA,
-                    "Expected hex character"
+                        TProtocolException.INVALID_DATA,
+                        "Expected hex character"
                 )
             }
         }

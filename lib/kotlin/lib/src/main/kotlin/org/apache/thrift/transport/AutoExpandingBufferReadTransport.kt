@@ -25,42 +25,43 @@ import org.apache.thrift.TConfiguration
  */
 class AutoExpandingBufferReadTransport(config: TConfiguration?, initialCapacity: Int) :
     TEndpointTransport(config) {
-    private val buf: AutoExpandingBuffer
+    private val buf: AutoExpandingBuffer = AutoExpandingBuffer(initialCapacity)
     override var bufferPosition = 0
         private set
     private var limit = 0
     @Throws(TTransportException::class)
-    fun fill(inTrans: TTransport, length: Int) {
+    suspend fun fill(inTrans: TTransport, length: Int) {
         buf.resizeIfNecessary(length)
         inTrans.readAll(buf.array(), 0, length)
         bufferPosition = 0
         limit = length
     }
 
-    override fun close() {}
+    override suspend fun close() {}
+
     override val isOpen: Boolean
         get() = true
 
     @Throws(TTransportException::class)
-    override fun open() {
+    override suspend fun open() {
     }
 
     @Throws(TTransportException::class)
-    override fun read(target: ByteArray?, off: Int, len: Int): Int {
-        val amtToRead = Math.min(len, bytesRemainingInBuffer)
+    override suspend fun read(buf: ByteArray, off: Int, len: Int): Int {
+        val amtToRead = len.coerceAtMost(bytesRemainingInBuffer)
         if (amtToRead > 0) {
-            System.arraycopy(buf.array(), bufferPosition, target, off, amtToRead)
+            System.arraycopy(this.buf.array(), bufferPosition, buf, off, amtToRead)
             consumeBuffer(amtToRead)
         }
         return amtToRead
     }
 
     @Throws(TTransportException::class)
-    override fun write(buf: ByteArray?, off: Int, len: Int) {
+    override suspend fun write(buf: ByteArray, off: Int, len: Int) {
         throw UnsupportedOperationException()
     }
 
-    override fun consumeBuffer(len: Int) {
+    override suspend fun consumeBuffer(len: Int) {
         bufferPosition += len
     }
 
@@ -69,7 +70,4 @@ class AutoExpandingBufferReadTransport(config: TConfiguration?, initialCapacity:
     override val bytesRemainingInBuffer: Int
         get() = limit - bufferPosition
 
-    init {
-        buf = AutoExpandingBuffer(initialCapacity)
-    }
 }

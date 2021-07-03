@@ -18,8 +18,11 @@
  */
 package org.apache.thrift.transport.layered
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.apache.thrift.TByteArrayOutputStream
 import org.apache.thrift.TConfiguration
+import org.apache.thrift.andToInt
 import org.apache.thrift.transport.TMemoryInputTransport
 import org.apache.thrift.transport.TTransport
 import org.apache.thrift.transport.TTransportException
@@ -31,10 +34,10 @@ import java.util.*
  * every time by preceding messages with a 4-byte frame size.
  */
 class TFramedTransport @JvmOverloads constructor(
-    transport: TTransport,
-    maxLength: Int = TConfiguration.DEFAULT_MAX_FRAME_SIZE
+        transport: TTransport,
+        maxLength: Int = TConfiguration.DEFAULT_MAX_FRAME_SIZE
 ) :
-    TLayeredTransport(transport) {
+        TLayeredTransport(transport) {
     /**
      * Buffer for output
      */
@@ -57,25 +60,25 @@ class TFramedTransport @JvmOverloads constructor(
         }
 
         @Throws(TTransportException::class)
-        fun getTransport(base: TTransport): TTransport {
-            return TFramedTransport(base, maxLength_)
+        override fun getTransport(trans: TTransport): TTransport {
+            return TFramedTransport(trans, maxLength_)
         }
     }
 
     @Throws(TTransportException::class)
-    fun open() {
-        getInnerTransport().open()
+    override suspend fun open() {
+        innerTransport.open()
     }
 
-    val isOpen: Boolean
-        get() = getInnerTransport().isOpen()
+    override val isOpen: Boolean
+        get() = innerTransport.isOpen
 
-    fun close() {
-        getInnerTransport().close()
+    override suspend fun close() = withContext(Dispatchers.IO) {
+        innerTransport.close()
     }
 
     @Throws(TTransportException::class)
-    fun read(buf: ByteArray?, off: Int, len: Int): Int {
+    override suspend fun read(buf: ByteArray, off: Int, len: Int): Int {
         val got: Int = readBuffer_.read(buf, off, len)
         if (got > 0) {
             return got
@@ -86,14 +89,14 @@ class TFramedTransport @JvmOverloads constructor(
         return readBuffer_.read(buf, off, len)
     }
 
-    val buffer: ByteArray
-        get() = readBuffer_.getBuffer()
-    val bufferPosition: Int
-        get() = readBuffer_.getBufferPosition()
-    val bytesRemainingInBuffer: Int
-        get() = readBuffer_.getBytesRemainingInBuffer()
+    override val buffer: ByteArray?
+        get() = readBuffer_.buffer
+    override val bufferPosition: Int
+        get() = readBuffer_.bufferPosition
+    override val bytesRemainingInBuffer: Int
+        get() = readBuffer_.bytesRemainingInBuffer
 
-    fun consumeBuffer(len: Int) {
+    override suspend fun consumeBuffer(len: Int) {
         readBuffer_.consumeBuffer(len)
     }
 
@@ -102,41 +105,42 @@ class TFramedTransport @JvmOverloads constructor(
     }
 
     private val i32buf = ByteArray(4)
+
     @Throws(TTransportException::class)
-    private fun readFrame() {
-        getInnerTransport().readAll(i32buf, 0, 4)
+    private suspend fun readFrame() {
+        innerTransport.readAll(i32buf, 0, 4)
         val size = decodeFrameSize(i32buf)
         if (size < 0) {
             close()
             throw TTransportException(TTransportException.CORRUPTED_DATA, "Read a negative frame size ($size)!")
         }
-        if (size > getInnerTransport().getConfiguration().getMaxFrameSize()) {
+        if (size > innerTransport.configuration.maxFrameSize) {
             close()
             throw TTransportException(
-                TTransportException.CORRUPTED_DATA,
-                "Frame size (" + size + ") larger than max length (" + getInnerTransport().getConfiguration()
-                    .getMaxFrameSize() + ")!"
+                    TTransportException.CORRUPTED_DATA,
+                    "Frame size (" + size + ") larger than max length (" + innerTransport.configuration
+                            .maxFrameSize + ")!"
             )
         }
         val buff = ByteArray(size)
-        getInnerTransport().readAll(buff, 0, size)
+        innerTransport.readAll(buff, 0, size)
         readBuffer_.reset(buff)
     }
 
     @Throws(TTransportException::class)
-    fun write(buf: ByteArray?, off: Int, len: Int) {
+    override suspend fun write(buf: ByteArray, off: Int, len: Int) = withContext(Dispatchers.IO) {
         writeBuffer_.write(buf, off, len)
     }
 
     @Throws(TTransportException::class)
-    fun flush() {
+    override suspend fun flush() = withContext(Dispatchers.IO) {
         val buf = writeBuffer_.get()
         val len = writeBuffer_.len() - 4 // account for the prepended frame size
         writeBuffer_.reset()
         writeBuffer_.write(sizeFiller_, 0, 4) // make room for the next frame's size data
         encodeFrameSize(len, buf) // this is the frame length without the filler
-        getInnerTransport().write(buf, 0, len + 4) // we have to write the frame size and frame data
-        getInnerTransport().flush()
+        innerTransport.write(buf, 0, len + 4) // we have to write the frame size and frame data
+        innerTransport.flush()
     }
 
     companion object {
@@ -154,10 +158,10 @@ class TFramedTransport @JvmOverloads constructor(
         }
 
         fun decodeFrameSize(buf: ByteArray): Int {
-            return buf[0] and 0xff shl 24 or
-                    (buf[1] and 0xff shl 16) or
-                    (buf[2] and 0xff shl 8) or
-                    (buf[3] and 0xff)
+            return buf[0] andToInt 0xff shl 24 or
+                    (buf[1] andToInt 0xff shl 16) or
+                    (buf[2] andToInt 0xff shl 8) or
+                    (buf[3] andToInt 0xff)
         }
     }
 
@@ -166,7 +170,7 @@ class TFramedTransport @JvmOverloads constructor(
      */
     init {
         val _configuration =
-            if (Objects.isNull(transport.configuration)) TConfiguration() else transport.configuration!!
+                if (Objects.isNull(transport.configuration)) TConfiguration() else transport.configuration
         _configuration.maxFrameSize = maxLength
         writeBuffer_.write(sizeFiller_, 0, 4)
         readBuffer_ = TMemoryInputTransport(_configuration, ByteArray(0))

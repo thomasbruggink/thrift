@@ -345,11 +345,10 @@ public:
 
     std::string declare_field(t_field *tfield, bool comment = false, bool last = false);
 
-    std::string function_signature(t_function *tfunction, std::string prefix = "");
-
-    std::string function_signature_async(t_function *tfunction,
-                                         bool use_base_method = false,
-                                         std::string prefix = "");
+    std::string function_signature(t_function* tfunction,
+                                   bool suspend = false,
+                                   bool has_override = false,
+                                   string visibility = "");
 
     std::string argument_list(t_struct *tstruct, bool include_types = true);
 
@@ -1185,7 +1184,7 @@ void t_kotlin_generator::generate_check_type(ostream &out, t_struct *tstruct) {
 
 void t_kotlin_generator::generate_standard_scheme_read_value(ostream &out, t_struct *tstruct) {
   indent(out) << "@Throws(org.apache.thrift.TException::class)" << endl;
-  indent(out) << "override fun standardSchemeReadValue( "
+  indent(out) << "override suspend fun standardSchemeReadValue( "
               << "iprot: org.apache.thrift.protocol.TProtocol, field: org.apache.thrift.protocol.TField): Any? {" << endl;
 
   indent_up();
@@ -1245,7 +1244,7 @@ void t_kotlin_generator::generate_standard_scheme_read_value(ostream &out, t_str
 
 void t_kotlin_generator::generate_standard_scheme_write_value(ostream &out, t_struct *tstruct) {
   indent(out) << "@Throws(org.apache.thrift.TException::class)" << endl;
-  indent(out) << "override fun standardSchemeWriteValue(oprot: org.apache.thrift.protocol.TProtocol) {" << endl;
+  indent(out) << "override suspend fun standardSchemeWriteValue(oprot: org.apache.thrift.protocol.TProtocol) {" << endl;
 
   indent_up();
 
@@ -1280,7 +1279,7 @@ void t_kotlin_generator::generate_standard_scheme_write_value(ostream &out, t_st
 }
 
 void t_kotlin_generator::generate_tuple_scheme_read_value(ostream &out, t_struct *tstruct) {
-  indent(out) << "override fun tupleSchemeReadValue(iprot: org.apache.thrift.protocol.TProtocol"
+  indent(out) << "override suspend fun tupleSchemeReadValue(iprot: org.apache.thrift.protocol.TProtocol"
               << ", fieldID:Short):Any? {" << endl;
 
   indent_up();
@@ -1330,7 +1329,7 @@ void t_kotlin_generator::generate_tuple_scheme_read_value(ostream &out, t_struct
 }
 
 void t_kotlin_generator::generate_tuple_scheme_write_value(ostream &out, t_struct *tstruct) {
-  indent(out) << "override fun tupleSchemeWriteValue(oprot: org.apache.thrift.protocol.TProtocol) {" << endl;
+  indent(out) << "override suspend fun tupleSchemeWriteValue(oprot: org.apache.thrift.protocol.TProtocol) {" << endl;
 
   indent_up();
 
@@ -1473,8 +1472,7 @@ void t_kotlin_generator::generate_kotlin_struct_definition(ostream &out,
   if (is_deprecated) {
     indent(out) << "@Deprecated" << endl;
   }
-  indent(out) << (is_const ? "public " : "public ") << (in_class ? "static " : "") << "class "
-              << tstruct->get_name() << "( " << endl;
+  indent(out) << "class " << tstruct->get_name() << "( " << endl;
 
   // Members are public
   indent_up();
@@ -2041,7 +2039,7 @@ void t_kotlin_generator::generate_kotlin_struct_compare_to(ostream &out, t_struc
  */
 void t_kotlin_generator::generate_kotlin_struct_reader(ostream &out, t_struct *tstruct) {
   (void) tstruct;
-  indent(out) << "override fun read(iprot: org.apache.thrift.protocol.TProtocol) {" << endl;
+  indent(out) << "override suspend fun read(iprot: org.apache.thrift.protocol.TProtocol) {" << endl;
   indent_up();
   indent(out) << "scheme<" << tstruct->get_name() << ">(iprot).read(iprot, this)" << endl;
   indent_down();
@@ -2089,7 +2087,7 @@ void t_kotlin_generator::generate_kotlin_validator(ostream &out, t_struct *tstru
  */
 void t_kotlin_generator::generate_kotlin_struct_writer(ostream &out, t_struct *tstruct) {
   (void) tstruct;
-  indent(out) << "override fun write(oprot: org.apache.thrift.protocol.TProtocol) {" << endl;
+  indent(out) << "override suspend fun write(oprot: org.apache.thrift.protocol.TProtocol) {" << endl;
   indent_up();
   indent(out) << "scheme<" << tstruct->get_name() << ">(oprot).write(oprot, this)" << endl;
 
@@ -2107,12 +2105,12 @@ void t_kotlin_generator::generate_kotlin_struct_writer(ostream &out, t_struct *t
  */
 void t_kotlin_generator::generate_kotlin_struct_result_writer(ostream &out, t_struct *tstruct) {
   (void) tstruct;
-  indent(out) << "fun write(oprot: org.apache.thrift.protocol.TProtocol) {" << endl;
+  indent(out) << "override suspend fun write(oprot: org.apache.thrift.protocol.TProtocol) {" << endl;
   indent_up();
   indent(out) << "scheme<" << tstruct->get_name() << ">(oprot).write(oprot, this)" << endl;
 
   indent_down();
-  indent(out) << "  }" << endl << endl;
+  indent(out) << "}" << endl << endl;
 }
 
 void t_kotlin_generator::generate_kotlin_struct_field_by_id(ostream &out, t_struct *tstruct) {
@@ -2773,7 +2771,7 @@ void t_kotlin_generator::generate_service(t_service *tservice) {
   f_service_ << autogen_comment() << kotlin_package() << kotlin_suppressions();
 
   generate_java_generated_annotation(f_service_);
-  f_service_ << "public class " << service_name_ << " {" << endl << endl;
+  f_service_ << "class " << service_name_ << " {" << endl << endl;
   indent_up();
 
   // Generate the three main parts of the service
@@ -2781,8 +2779,8 @@ void t_kotlin_generator::generate_service(t_service *tservice) {
   generate_service_async_interface(tservice);
   generate_service_client(tservice);
   generate_service_async_client(tservice);
-  generate_service_server(tservice);
-  generate_service_async_server(tservice);
+  /*generate_service_server(tservice);
+  generate_service_async_server(tservice);*/
   generate_service_helpers(tservice);
 
   indent_down();
@@ -2810,8 +2808,7 @@ void t_kotlin_generator::generate_service_interface(t_service *tservice) {
   vector<t_function *>::iterator f_iter;
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
     generate_java_doc(f_service_, *f_iter);
-    indent(f_service_) << "@Throws(org.apache.thrift.TException::class)" << endl;
-    indent(f_service_) << "fun " << function_signature(*f_iter) << endl << endl;
+    indent(f_service_) << function_signature(*f_iter, false) << endl << endl;
   }
   indent_down();
   f_service_ << indent() << "}" << endl << endl;
@@ -2825,13 +2822,12 @@ void t_kotlin_generator::generate_service_async_interface(t_service *tservice) {
     extends_iface = " : " + extends + " .AsyncIface";
   }
 
-  f_service_ << indent() << "public interface AsyncIface" << extends_iface << " {" << endl << endl;
+  f_service_ << indent() << "interface AsyncIface" << extends_iface << " {" << endl << endl;
   indent_up();
   vector<t_function *> functions = tservice->get_functions();
   vector<t_function *>::iterator f_iter;
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
-    indent(f_service_) << "@Throws(org.apache.thrift.TException::class)" << endl;
-    indent(f_service_) << "suspend fun " << function_signature_async(*f_iter, true) << endl << endl;
+    indent(f_service_) << function_signature(*f_iter, true) << endl << endl;
   }
   indent_down();
   f_service_ << indent() << "}" << endl << endl;
@@ -2867,9 +2863,14 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
     extends_client = extends + ".Client";
   }
 
-  indent(f_service_) << "class Client : " << extends_client
-                     << ", Iface {" << endl;
+  indent(f_service_) << "class Client(" << endl;
+  indent(f_service_) << "    inputProtocol: org.apache.thrift.protocol.TProtocol," << endl;
+  indent(f_service_) << "    outputProtocol : org.apache.thrift.protocol.TProtocol " << endl;
+  indent(f_service_) << ") : org.apache.thrift.TServiceClient(inputProtocol, outputProtocol), Iface {" << endl;
   indent_up();
+  indent(f_service_) << "constructor(prot:org.apache.thrift.protocol.TProtocol): this(prot, prot)"
+                     << endl
+                     << endl;
 
   indent(f_service_) << "companion object {" << endl;
   indent_up();
@@ -2893,12 +2894,6 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
   indent(f_service_) << "}" << endl;
   scope_down(f_service_);
 
-  indent(f_service_) << "constructor(prot:org.apache.thrift.protocol.TProtocol): super(prot, prot)" << endl;
-  f_service_ << endl;
-
-  indent(f_service_) << "constructor(iprot:org.apache.thrift.protocol.TProtocol, "
-                        "oprot:org.apache.thrift.protocol.TProtocol): super(iprot, oprot)" << endl << endl;
-
   // Generate client method implementations
   vector<t_function *> functions = tservice->get_functions();
   vector<t_function *>::const_iterator f_iter;
@@ -2910,7 +2905,7 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
     kotlinname = as_camel_case(funname);
 
     // Open function
-    indent(f_service_) << "override fun " << function_signature(*f_iter) << endl;
+    indent(f_service_) << function_signature(*f_iter, false, true) << endl;
     scope_up(f_service_);
     indent(f_service_) << "send" << sep << kotlinname << "(";
 
@@ -2948,7 +2943,7 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
     string argsname = (*f_iter)->get_name() + "_args";
 
     // Open function
-    indent(f_service_) << "fun " << function_signature(&send_function) << endl;
+    indent(f_service_) << function_signature(&send_function) << endl;
     scope_up(f_service_);
 
     // Serialize the request
@@ -2974,7 +2969,7 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
                                &noargs,
                                (*f_iter)->get_xceptions());
       // Open function
-      indent(f_service_) << "fun " << function_signature(&recv_function) << endl;
+      indent(f_service_) << function_signature(&recv_function) << endl;
       scope_up(f_service_);
 
       f_service_ << indent() << "val result:" << resultname << " = " << resultname << "()" << endl
@@ -2983,16 +2978,25 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
       // Careful, only return _result if not a void function
       if (!(*f_iter)->get_returntype()->is_void()) {
         f_service_ << indent() << "if (result." << generate_isset_check("success") << ") {" << endl
-                   << indent() << "  return result.getSuccess()!!" << endl 
-                   << indent() << "}" << endl;
+                   << indent() << "   return ";
+        if ((*f_iter)->get_returntype()->is_binary()) {
+          f_service_ << "java.nio.ByteBuffer.wrap(";
+        }
+        f_service_ << "result."
+                   << ((*f_iter)->get_returntype()->is_bool() ? "is" : "get") << "Success()!!";
+        if ((*f_iter)->get_returntype()->is_binary()) {
+          f_service_ << ")";
+        }
+        f_service_ << endl << indent() << "}" << endl;
       }
 
       t_struct *xs = (*f_iter)->get_xceptions();
       const std::vector<t_field *> &xceptions = xs->get_members();
       vector<t_field *>::const_iterator x_iter;
       for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
-        f_service_ << indent() << "if (result." << (*x_iter)->get_name() << " != null) {" << endl
-                   << indent() << "  throw result." << (*x_iter)->get_name() << endl
+        f_service_ << indent() << "if (result." << generate_isset_check((*x_iter)->get_name())
+                   << ") {" << endl
+                   << indent() << "  throw result.get" << capitalize((*x_iter)->get_name()) << "()!!" << endl
                    << indent() << "}" << endl;
       }
 
@@ -3017,170 +3021,156 @@ void t_kotlin_generator::generate_service_client(t_service *tservice) {
 }
 
 void t_kotlin_generator::generate_service_async_client(t_service *tservice) {
-  string extends = "org.apache.thrift.async.TAsyncClient";
-  string extends_client = "";
-  if (tservice->get_extends() != nullptr) {
-    extends = type_name(tservice->get_extends()) + ".AsyncClient";
-  }
-
-  
-  indent(f_service_) << "class AsyncClient : " << extends
-                     << ", AsyncIface {" << endl;
+  indent(f_service_) << "class AsyncClient(" << endl;
+  indent(f_service_) << "    inputProtocol: org.apache.thrift.protocol.TProtocol," << endl;
+  indent(f_service_) << "    outputProtocol: org.apache.thrift.protocol.TProtocol " << endl;
+  indent(f_service_) << ") : org.apache.thrift.async.TAsyncClient(inputProtocol, outputProtocol), AsyncIface {" << endl;
   indent_up();
 
-  // Factory method
+  // Overload constructor
+  indent(f_service_) << "constructor(prot: org.apache.thrift.protocol.TProtocol): this(prot, prot)" << endl << endl;
+
   indent(f_service_) << "companion object {" << endl;
   indent_up();
-  indent(f_service_) << "class Factory(" << endl;
-  indent(f_service_) << "  private val clientManager:org.apache.thrift.async.TAsyncClientManager," << endl;
-  indent(f_service_) << "  private val protocolFactory:org.apache.thrift.protocol.TProtocolFactory" << endl;
-  indent(f_service_) << "): org.apache.thrift.async.TAsyncClientFactory<AsyncClient> {" << endl;
-  indent(f_service_) << "  public Factory(org.apache.thrift.async.TAsyncClientManager "
-                        "clientManager, org.apache.thrift.protocol.TProtocolFactory "
-                        "protocolFactory) {" << endl;
-  indent(f_service_) << "    this.clientManager = clientManager;" << endl;
-  indent(f_service_) << "    this.protocolFactory = protocolFactory;" << endl;
-  indent(f_service_) << "  }" << endl;
-  indent(f_service_) << "  public AsyncClient "
-                        "getAsyncClient(org.apache.thrift.transport.TNonblockingTransport "
-                        "transport) {" << endl;
-  indent(f_service_) << "    return AsyncClient(protocolFactory, clientManager, transport);"
+  indent(f_service_) << "class Factory : org.apache.thrift.TServiceClientFactory<AsyncClient> {" << endl;
+  indent_up();
+  indent(f_service_)
+      << "override fun getClient(prot: org.apache.thrift.protocol.TProtocol):AsyncClient {" << endl;
+  indent_up();
+  indent(f_service_) << "return AsyncClient(prot)" << endl;
+  indent_down();
+  indent(f_service_) << "}" << endl;
+  indent(f_service_) << "override fun getClient(iprot: org.apache.thrift.protocol.TProtocol, "
+                        "oprot: org.apache.thrift.protocol.TProtocol):AsyncClient {"
                      << endl;
-  indent(f_service_) << "  }" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "fun AsyncClient(org.apache.thrift.protocol.TProtocolFactory "
-                        "protocolFactory, org.apache.thrift.async.TAsyncClientManager "
-                        "clientManager, org.apache.thrift.transport.TNonblockingTransport "
-                        "transport) {" << endl;
-  indent(f_service_) << "  super(protocolFactory, clientManager, transport);" << endl;
+  indent_up();
+  indent(f_service_) << "return AsyncClient(iprot, oprot)" << endl;
+  indent_down();
+  indent(f_service_) << "}" << endl;
+  indent_down();
   indent(f_service_) << "}" << endl;
   scope_down(f_service_);
-  indent(f_service_) << endl;
 
   // Generate client method implementations
-  vector<t_function *> functions = tservice->get_functions();
-  vector<t_function *>::const_iterator f_iter;
+  vector<t_function*> functions = tservice->get_functions();
+  vector<t_function*>::const_iterator f_iter;
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
     string funname = (*f_iter)->get_name();
     string sep = "_";
     string kotlinname = funname;
     sep = "";
-    kotlinname = as_camel_case(kotlinname);
-    t_type *ret_type = (*f_iter)->get_returntype();
-    t_struct *arg_struct = (*f_iter)->get_arglist();
-    string funclassname = funname + "_call";
-    const vector<t_field *> &fields = arg_struct->get_members();
-    const std::vector<t_field *> &xceptions = (*f_iter)->get_xceptions()->get_members();
-    vector<t_field *>::const_iterator fld_iter;
-    string args_name = (*f_iter)->get_name() + "_args";
-    string result_name = (*f_iter)->get_name() + "_result";
+    kotlinname = as_camel_case(funname);
 
-    // Main method body
-    indent(f_service_) << "public " << function_signature_async(*f_iter, false)
-                       << " throws org.apache.thrift.TException {" << endl;
-    indent(f_service_) << "  checkReady();" << endl;
-    indent(f_service_) << "  " << funclassname << " method_call = " + funclassname + "("
-                       << argument_list((*f_iter)->get_arglist())
-                       << ", this, ___protocolFactory, ___transport);" << endl;
-    indent(f_service_) << "  this.___currentMethod = method_call;" << endl;
-    indent(f_service_) << "  ___manager.call(method_call);" << endl;
-    indent(f_service_) << "}" << endl;
+    // Open function
+    indent(f_service_) << function_signature(*f_iter, true, true) << endl;
+    scope_up(f_service_);
+    indent(f_service_) << "send" << sep << kotlinname << "(";
 
+    // Get the struct of function call params
+    t_struct* arg_struct = (*f_iter)->get_arglist();
+
+    // Declare the function arguments
+    const vector<t_field*>& fields = arg_struct->get_members();
+    vector<t_field*>::const_iterator fld_iter;
+    bool first = true;
+    for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
+      if (first) {
+        first = false;
+      } else {
+        f_service_ << ", ";
+      }
+      f_service_ << (*fld_iter)->get_name();
+    }
+    f_service_ << ")" << endl;
+
+    if (!(*f_iter)->is_oneway()) {
+      f_service_ << indent();
+      if (!(*f_iter)->get_returntype()->is_void()) {
+        f_service_ << "return ";
+      }
+      f_service_ << "recv" << sep << kotlinname << "()" << endl;
+    }
+    scope_down(f_service_);
     f_service_ << endl;
 
-    // TAsyncMethod object for this function call
-    indent(f_service_) << "public static class " + funclassname
-                          + " : org.apache.thrift.async.TAsyncMethodCall<"
-                          + type_name((*f_iter)->get_returntype(), true) + "> {" << endl;
-    indent_up();
+    t_function send_function(g_type_void, string("send") + sep + kotlinname,
+                             (*f_iter)->get_arglist());
 
-    // Member variables
-    for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
-      indent(f_service_) << "private " + type_name((*fld_iter)->get_type()) + " "
-                            + (*fld_iter)->get_name() + ";" << endl;
-    }
+    string argsname = (*f_iter)->get_name() + "_args";
 
-    // NOTE since we use a Client instance to deserialize, let's keep seqid to 0 for now
-    // indent(f_service_) << "private int seqid;" << endl << endl;
+    // Open function
+    indent(f_service_) << function_signature(&send_function, true) << endl;
+    scope_up(f_service_);
 
-    // Constructor
-    indent(f_service_) << "public " + funclassname + "("
-                          + argument_list((*f_iter)->get_arglist(), true)
-                       << ", org.apache.thrift.async.TAsyncClient client, "
-                          "org.apache.thrift.protocol.TProtocolFactory protocolFactory, "
-                          "org.apache.thrift.transport.TNonblockingTransport transport) throws "
-                          "org.apache.thrift.TException {" << endl;
-    indent(f_service_) << "  super(client, protocolFactory, transport, resultHandler, "
-                       << ((*f_iter)->is_oneway() ? "true" : "false") << ");" << endl;
-
-    // Assign member variables
-    for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
-      indent(f_service_) << "  this." + (*fld_iter)->get_name() + " = " + (*fld_iter)->get_name()
-                            + ";" << endl;
-    }
-
-    indent(f_service_) << "}" << endl << endl;
-
-    indent(f_service_) << "public void write_args(org.apache.thrift.protocol.TProtocol prot) "
-                          "throws org.apache.thrift.TException {" << endl;
-    indent_up();
-
-    // Serialize request
-    // NOTE we are leaving seqid as 0, for now (see above)
-    f_service_ << indent() << "prot.writeMessageBegin(org.apache.thrift.protocol.TMessage(\""
-               << funname << "\", org.apache.thrift.protocol."
-               << ((*f_iter)->is_oneway() ? "TMessageType.ONEWAY" : "TMessageType.CALL") << ", 0));"
-               << endl << indent() << args_name << " args = " << args_name << "();" << endl;
+    // Serialize the request
+    indent(f_service_) << "val args:" << argsname << " = " << argsname << "()" << endl;
 
     for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
-      f_service_ << indent() << "args.set" << get_cap_name((*fld_iter)->get_name()) << "("
-                 << (*fld_iter)->get_name() << ");" << endl;
+      indent(f_service_) << "args.set" << get_cap_name((*fld_iter)->get_name()) << "("
+                         << (*fld_iter)->get_name() << ")" << endl;
     }
 
-    f_service_ << indent() << "args.write(prot);" << endl << indent() << "prot.writeMessageEnd();"
-               << endl;
+    const string sendBaseName = (*f_iter)->is_oneway() ? "sendBaseOneway" : "sendBase";
+    indent(f_service_) << sendBaseName << "(\"" << funname << "\", args)" << endl;
 
-    indent_down();
-    indent(f_service_) << "}" << endl << endl;
+    scope_down(f_service_);
+    f_service_ << endl;
 
-    // Return method
-    indent(f_service_) << "public " + type_name(ret_type, true) + " getResult() throws ";
-    vector<t_field *>::const_iterator x_iter;
-    for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
-      f_service_ << type_name((*x_iter)->get_type(), false, false) + ", ";
+    if (!(*f_iter)->is_oneway()) {
+      string resultname = (*f_iter)->get_name() + "_result";
+
+      t_struct noargs(program_);
+      t_function recv_function((*f_iter)->get_returntype(), string("recv") + sep + kotlinname,
+                               &noargs, (*f_iter)->get_xceptions());
+      // Open function
+      indent(f_service_) << function_signature(&recv_function, true) << endl;
+      scope_up(f_service_);
+
+      f_service_ << indent() << "val result:" << resultname << " = " << resultname << "()" << endl
+                 << indent() << "receiveBase(result, \"" << funname << "\")" << endl;
+
+      // Careful, only return _result if not a void function
+      if (!(*f_iter)->get_returntype()->is_void()) {
+        f_service_ << indent() << "if (result." << generate_isset_check("success") << ") {" << endl
+                   << indent() << "  return ";
+        if ((*f_iter)->get_returntype()->is_binary()) {
+          f_service_ << "java.nio.ByteBuffer.wrap(";
+        }
+        f_service_ << "result." << ((*f_iter)->get_returntype()->is_bool() ? "is" : "get") << "Success()!!";
+        if ((*f_iter)->get_returntype()->is_binary()) {
+          f_service_ << ")";
+        }
+        f_service_ << endl << indent() << "}" << endl;
+      }
+
+      t_struct* xs = (*f_iter)->get_xceptions();
+      const std::vector<t_field*>& xceptions = xs->get_members();
+      vector<t_field*>::const_iterator x_iter;
+      for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
+        f_service_ << indent() << "if (result." << generate_isset_check((*x_iter)->get_name()) << ") {" << endl
+                   << indent() << "  throw result.get" << capitalize((*x_iter)->get_name()) << "()!!" << endl
+                   << indent() << "}" << endl;
+      }
+
+      // If you get here it's an exception, unless a void function
+      if ((*f_iter)->get_returntype()->is_void()) {
+        indent(f_service_) << "return" << endl;
+      } else {
+        f_service_ << indent()
+                   << "throw "
+                      "org.apache.thrift.TApplicationException(org.apache.thrift."
+                      "TApplicationException.MISSING_RESULT, \""
+                   << (*f_iter)->get_name() << " failed: unknown result\")" << endl;
+      }
+
+      // Close function
+      scope_down(f_service_);
+      f_service_ << endl;
     }
-    f_service_ << "org.apache.thrift.TException {" << endl;
-
-    indent_up();
-    f_service_
-            << indent()
-            << "if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {"
-            << endl << indent() << "  throw java.lang.IllegalStateException(\"Method call not finished!\");"
-            << endl << indent() << "}" << endl << indent()
-            << "org.apache.thrift.transport.TMemoryInputTransport memoryTransport = "
-               "org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());" << endl
-            << indent() << "org.apache.thrift.protocol.TProtocol prot = "
-                           "client.getProtocolFactory().getProtocol(memoryTransport);" << endl;
-    indent(f_service_);
-    if (ret_type->is_void()) { // NB: Includes oneways which always return void.
-      f_service_ << "return null" << endl;
-    } else {
-      f_service_ << "return (Client(prot)).recv" + sep + kotlinname + "()" << endl;
-    }
-
-    // Close function
-    indent_down();
-    indent(f_service_) << "}" << endl;
-
-    // Close class
-    indent_down();
-    indent(f_service_) << "}" << endl << endl;
   }
 
-  // Close AsyncClient
-  scope_down(f_service_);
-  f_service_ << endl;
+  indent_down();
+  indent(f_service_) << "}" << endl;
 }
 
 /**
@@ -3204,7 +3194,7 @@ void t_kotlin_generator::generate_service_server(t_service *tservice) {
   }
 
   // Generate the header portion
-  indent(f_service_) << "public static class Processor<I extends Iface> extends "
+  indent(f_service_) << "class Processor<I extends Iface> extends "
                      << extends_processor << " : org.apache.thrift.TProcessor {" << endl;
   indent_up();
 
@@ -3267,7 +3257,7 @@ void t_kotlin_generator::generate_service_async_server(t_service *tservice) {
   }
 
   // Generate the header portion
-  indent(f_service_) << "public static class AsyncProcessor<I extends AsyncIface> extends "
+  indent(f_service_) << "class AsyncProcessor<I extends AsyncIface> extends "
                      << extends_processor << " {" << endl;
   indent_up();
 
@@ -3352,7 +3342,7 @@ void t_kotlin_generator::generate_process_async_function(t_service *tservice, t_
 
   (void) tservice;
   // Open class
-  indent(f_service_) << "public static class " << tfunction->get_name()
+  indent(f_service_) << "public class " << tfunction->get_name()
                      << "<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, "
                      << argsname << ", " << resulttype << "> {" << endl;
   indent_up();
@@ -3549,7 +3539,7 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
 
   (void) tservice;
   // Open class
-  indent(f_service_) << "public static class " << tfunction->get_name()
+  indent(f_service_) << "class " << tfunction->get_name()
                      << "<I extends Iface> extends org.apache.thrift.ProcessFunction<I, "
                      << argsname << "> {" << endl;
   indent_up();
@@ -4269,48 +4259,30 @@ string t_kotlin_generator::declare_field(t_field *tfield, bool comment, bool las
 }
 
 /**
- * Renders a function signature of the form 'type name(args)'
+ * Renders a function signature of the form '@Throws(org.apache.thrift.TException::class, <others>)\n<suspend> fun <name>(<args>):<returnType>'
  *
  * @param tfunction Function definition
  * @return String of rendered function definition
  */
-string t_kotlin_generator::function_signature(t_function *tfunction, string prefix) {
+string t_kotlin_generator::function_signature(t_function* tfunction,
+                                              bool suspend,
+                                              bool has_override,
+                                              string visibility) {
   t_type *ttype = tfunction->get_returntype();
   std::string fn_name = get_rpc_method_name(tfunction->get_name());
-  std::string result = prefix + fn_name + "("
-                       + argument_list(tfunction->get_arglist()) + ")";
+  std::string result = "@Throws(org.apache.thrift.TException::class";
+  t_struct* xs = tfunction->get_xceptions();
+  const std::vector<t_field*>& xceptions = xs->get_members();
+  vector<t_field*>::const_iterator x_iter;
+  for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
+    result += ", " + type_name((*x_iter)->get_type()) + "::class";
+  }
+  result += ")" + endl;
+  result += indent() +  visibility + (has_override ? "override " : "") + (suspend ? "suspend " : "")
+            + "fun " + fn_name + "(" + argument_list(tfunction->get_arglist()) + ")";
   if(!tfunction->get_returntype()->is_void()) {
      result += ":" + type_name(ttype);
   }
-  t_struct *xs = tfunction->get_xceptions();
-  const std::vector<t_field *> &xceptions = xs->get_members();
-  vector<t_field *>::const_iterator x_iter;
-  for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
-    result += type_name((*x_iter)->get_type(), false, false) + ", ";
-  }
-  return result;
-}
-
-/**
- * Renders a function signature of the form 'void name(args, resultHandler)'
- *
- * @params tfunction Function definition
- * @return String of rendered function definition
- */
-string t_kotlin_generator::function_signature_async(t_function *tfunction,
-                                                    bool use_base_method,
-                                                    string prefix) {
-  std::string arglist = argument_list(tfunction->get_arglist(), true);
-
-  std::string ret_type = "";
-  if (use_base_method) {
-    ret_type += "AsyncClient.";
-  }
-  ret_type += tfunction->get_name() + "_call";
-
-  std::string fn_name = get_rpc_method_name(tfunction->get_name());
-
-  std::string result = prefix + fn_name + "(" + arglist + "): " + type_name(tfunction->get_returntype(), true);
   return result;
 }
 
@@ -4874,7 +4846,7 @@ void t_kotlin_generator::generate_kotlin_struct_clear(std::ostream &out, t_struc
 void t_kotlin_generator::generate_kotlin_struct_write_object(ostream &out, t_struct *tstruct) {
   (void) tstruct;
   indent(out)
-          << "fun writeObject(out:java.io.ObjectOutputStream) {"
+          << "suspend fun writeObject(out:java.io.ObjectOutputStream) {"
           << endl;
   indent(out) << "  try {" << endl;
   indent(out) << "    write(org.apache.thrift.protocol.TCompactProtocol("
@@ -4886,22 +4858,18 @@ void t_kotlin_generator::generate_kotlin_struct_write_object(ostream &out, t_str
   indent(out) << "}" << endl << endl;
 }
 
-// generates kotlin method to serialize (in the kotlin sense) the object
+// generates kotlin method to serialize the object
 void t_kotlin_generator::generate_kotlin_struct_read_object(ostream &out, t_struct *tstruct) {
-  indent(out) << "fun readObject(inp:java.io.ObjectInputStream) {" << endl;
+  indent(out) << "suspend fun readObject(inp:java.io.ObjectInputStream) {" << endl;
   indent(out) << "  try {" << endl;
   if (!tstruct->is_union()) {
     switch (needs_isset(tstruct)) {
       case ISSET_NONE:
         break;
       case ISSET_PRIMITIVE:
-        indent(out) << "    // it doesn't seem like you should have to do this, but kotlin "
-                       "serialization is wacky, and doesn't call the default constructor." << endl;
         indent(out) << "    __isset_bitfield = 0" << endl;
         break;
       case ISSET_BITSET:
-        indent(out) << "    // it doesn't seem like you should have to do this, but kotlin "
-                       "serialization is wacky, and doesn't call the default constructor." << endl;
         indent(out) << "    __isset_bit_vector = java.util.BitSet(1)" << endl;
         break;
     }
@@ -4916,7 +4884,7 @@ void t_kotlin_generator::generate_kotlin_struct_read_object(ostream &out, t_stru
 }
 
 void t_kotlin_generator::generate_standard_reader(ostream &out, t_struct *tstruct) {
-  out << indent() << "override fun read(iprot:org.apache.thrift.protocol.TProtocol, "
+  out << indent() << "override suspend fun read(iprot:org.apache.thrift.protocol.TProtocol, "
       << "struct:" << tstruct->get_name() << ") {" << endl;
   indent_up();
 
@@ -5004,7 +4972,7 @@ void t_kotlin_generator::generate_standard_reader(ostream &out, t_struct *tstruc
 
 void t_kotlin_generator::generate_standard_writer(ostream &out, t_struct *tstruct, bool is_result) {
   indent_up();
-  out << indent() << "override fun write(oprot:org.apache.thrift.protocol.TProtocol, "
+  out << indent() << "override suspend fun write(oprot:org.apache.thrift.protocol.TProtocol, "
       << "struct:" << tstruct->get_name() << ") {" << endl;
   indent_up();
   const vector<t_field *> &fields = tstruct->get_sorted_members();
@@ -5083,7 +5051,7 @@ void t_kotlin_generator::generate_kotlin_struct_standard_scheme(ostream &out,
 }
 
 void t_kotlin_generator::generate_kotlin_struct_tuple_reader(ostream &out, t_struct *tstruct) {
-  indent(out) << "override fun read(iprot: org.apache.thrift.protocol.TProtocol"
+  indent(out) << "override suspend fun read(iprot: org.apache.thrift.protocol.TProtocol"
               << ", struct:" << tstruct->get_name() << ") {" << endl;
   indent_up();
   indent(out) << "val prot:org.apache.thrift.protocol.TTupleProtocol = "
@@ -5124,7 +5092,7 @@ void t_kotlin_generator::generate_kotlin_struct_tuple_reader(ostream &out, t_str
 }
 
 void t_kotlin_generator::generate_kotlin_struct_tuple_writer(ostream &out, t_struct *tstruct) {
-  indent(out) << "override fun write(oprot:org.apache.thrift.protocol.TProtocol"
+  indent(out) << "override suspend fun write(oprot:org.apache.thrift.protocol.TProtocol"
               << ", struct:" << tstruct->get_name() << ") {" << endl;
   indent_up();
   indent(out) << "val prot:org.apache.thrift.protocol.TTupleProtocol = "
@@ -5204,7 +5172,7 @@ void t_kotlin_generator::generate_kotlin_scheme_lookup(ostream &out) {
   indent(out) << "private fun <S : org.apache.thrift.TBase<S, *>> scheme("
               << "proto:org.apache.thrift.protocol.TProtocol): org.apache.thrift.scheme.IScheme<S> {" << endl;
   indent_up();
-  indent(out) << "if(proto.scheme is org.apache.thrift.scheme.StandardScheme<*>) {" << endl;
+  indent(out) << "if(proto.scheme.isAssignableFrom(org.apache.thrift.scheme.StandardScheme::class.java)) {" << endl;
   indent_up();
   indent(out) << "return STANDARD_SCHEME_FACTORY.getScheme() as org.apache.thrift.scheme.IScheme<S>" << endl;
   scope_down(out);

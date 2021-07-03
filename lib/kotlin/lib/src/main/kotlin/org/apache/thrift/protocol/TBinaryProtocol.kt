@@ -19,7 +19,9 @@
 package org.apache.thrift.protocol
 
 import org.apache.thrift.TException
-import org.apache.thrift.and
+import org.apache.thrift.andToInt
+import org.apache.thrift.andToLong
+import org.apache.thrift.andToShort
 import org.apache.thrift.shl
 import org.apache.thrift.shr
 import org.apache.thrift.transport.TTransport
@@ -32,8 +34,8 @@ import kotlin.experimental.or
  * Binary protocol implementation for thrift.
  *
  */
-class TBinaryProtocol @JvmOverloads constructor(
-    trans: TTransport?,
+class TBinaryProtocol constructor(
+    trans: TTransport,
     /**
      * The maximum number of bytes to read from the transport for
      * variable-length fields (such as strings or binary) or [.NO_LENGTH_LIMIT] for
@@ -45,20 +47,19 @@ class TBinaryProtocol @JvmOverloads constructor(
      * containers (maps, sets, lists), or [.NO_LENGTH_LIMIT] for unlimited.
      */
     private val containerLengthLimit_: Long,
-    protected var strictRead_: Boolean = false,
-    protected var strictWrite_: Boolean = true
-) :
-    TProtocol(trans) {
+    private var strictRead_: Boolean = false,
+    private var strictWrite_: Boolean = true
+) : TProtocol(trans) {
     private val inoutTemp = ByteArray(8)
 
     /**
      * Factory
      */
     class Factory @JvmOverloads constructor(
-        protected var strictRead_: Boolean = false,
-        protected var strictWrite_: Boolean = true,
-        protected var stringLengthLimit_: Long = NO_LENGTH_LIMIT,
-        protected var containerLengthLimit_: Long = NO_LENGTH_LIMIT
+        private var strictRead_: Boolean = false,
+        private var strictWrite_: Boolean = true,
+        private var stringLengthLimit_: Long = NO_LENGTH_LIMIT,
+        private var containerLengthLimit_: Long = NO_LENGTH_LIMIT
     ) : TProtocolFactory {
         constructor(stringLengthLimit: Long, containerLengthLimit: Long) : this(
             false,
@@ -68,7 +69,7 @@ class TBinaryProtocol @JvmOverloads constructor(
         ) {
         }
 
-        override fun getProtocol(trans: TTransport?): TProtocol {
+        override fun getProtocol(trans: TTransport): TProtocol {
             return TBinaryProtocol(trans, stringLengthLimit_, containerLengthLimit_, strictRead_, strictWrite_)
         }
     }
@@ -76,18 +77,16 @@ class TBinaryProtocol @JvmOverloads constructor(
     /**
      * Constructor
      */
-    @JvmOverloads
-    constructor(trans: TTransport?, strictRead: Boolean = false, strictWrite: Boolean = true) : this(
+    constructor(trans: TTransport, strictRead: Boolean = false, strictWrite: Boolean = true) : this(
         trans,
         NO_LENGTH_LIMIT,
         NO_LENGTH_LIMIT,
         strictRead,
         strictWrite
-    ) {
-    }
+    )
 
     @Throws(TException::class)
-    override fun writeMessageBegin(message: TMessage?) {
+    override suspend fun writeMessageBegin(message: TMessage?) {
         if (strictWrite_) {
             val version = VERSION_1 or message!!.type.toInt()
             writeI32(version)
@@ -101,92 +100,92 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun writeMessageEnd() {
+    override suspend fun writeMessageEnd() {
     }
 
     @Throws(TException::class)
-    override fun writeStructBegin(struct: TStruct?) {
+    override suspend fun writeStructBegin(struct: TStruct?) {
     }
 
     @Throws(TException::class)
-    override fun writeStructEnd() {
+    override suspend fun writeStructEnd() {
     }
 
     @Throws(TException::class)
-    override fun writeFieldBegin(field: TField?) {
+    override suspend fun writeFieldBegin(field: TField?) {
         writeByte(field!!.type)
         writeI16(field.id)
     }
 
     @Throws(TException::class)
-    override fun writeFieldEnd() {
+    override suspend fun writeFieldEnd() {
     }
 
     @Throws(TException::class)
-    override fun writeFieldStop() {
+    override suspend fun writeFieldStop() {
         writeByte(TType.STOP)
     }
 
     @Throws(TException::class)
-    override fun writeMapBegin(map: TMap?) {
+    override suspend fun writeMapBegin(map: TMap?) {
         writeByte(map!!.keyType)
         writeByte(map.valueType)
         writeI32(map.size)
     }
 
     @Throws(TException::class)
-    override fun writeMapEnd() {
+    override suspend fun writeMapEnd() {
     }
 
     @Throws(TException::class)
-    override fun writeListBegin(list: TList?) {
+    override suspend fun writeListBegin(list: TList?) {
         writeByte(list!!.elemType)
         writeI32(list.size)
     }
 
     @Throws(TException::class)
-    override fun writeListEnd() {
+    override suspend fun writeListEnd() {
     }
 
     @Throws(TException::class)
-    override fun writeSetBegin(set: TSet?) {
+    override suspend fun writeSetBegin(set: TSet?) {
         writeByte(set!!.elemType)
         writeI32(set.size)
     }
 
     @Throws(TException::class)
-    override fun writeSetEnd() {
+    override suspend fun writeSetEnd() {
     }
 
     @Throws(TException::class)
-    override fun writeBool(b: Boolean) {
+    override suspend fun writeBool(b: Boolean) {
         writeByte(if (b) 1.toByte() else 0.toByte())
     }
 
     @Throws(TException::class)
-    override fun writeByte(b: Byte) {
+    override suspend fun writeByte(b: Byte) {
         inoutTemp[0] = b
-        trans_!!.write(inoutTemp, 0, 1)
+        trans_.write(inoutTemp, 0, 1)
     }
 
     @Throws(TException::class)
-    override fun writeI16(i16: Short) {
+    override suspend fun writeI16(i16: Short) {
         inoutTemp[0] = (0xff and (i16 shr 8)).toByte()
         inoutTemp[1] = (0xff and i16.toInt()).toByte()
-        trans_!!.write(inoutTemp, 0, 2)
+        trans_.write(inoutTemp, 0, 2)
     }
 
     @Throws(TException::class)
-    override fun writeI32(i32: Int) {
+    override suspend fun writeI32(i32: Int) {
         inoutTemp[0] = (0xff and (i32 shr 24)).toByte()
         inoutTemp[1] = (0xff and (i32 shr 16)).toByte()
         inoutTemp[2] = (0xff and (i32 shr 8)).toByte()
         inoutTemp[3] = (0xff and i32).toByte()
-        trans_!!.write(inoutTemp, 0, 4)
+        trans_.write(inoutTemp, 0, 4)
     }
 
     @Throws(TException::class)
-    override fun writeI64(i64: Long) {
+    override suspend fun writeI64(i64: Long) {
         inoutTemp[0] = (0xff and (i64 shr 56).toInt()).toByte()
         inoutTemp[1] = (0xff and (i64 shr 48).toInt()).toByte()
         inoutTemp[2] = (0xff and (i64 shr 40).toInt()).toByte()
@@ -195,33 +194,33 @@ class TBinaryProtocol @JvmOverloads constructor(
         inoutTemp[5] = (0xff and (i64 shr 16).toInt()).toByte()
         inoutTemp[6] = (0xff and (i64 shr 8).toInt()).toByte()
         inoutTemp[7] = (0xff and i64.toInt()).toByte()
-        trans_!!.write(inoutTemp, 0, 8)
+        trans_.write(inoutTemp, 0, 8)
     }
 
     @Throws(TException::class)
-    override fun writeDouble(dub: Double) {
+    override suspend fun writeDouble(dub: Double) {
         writeI64(java.lang.Double.doubleToLongBits(dub))
     }
 
     @Throws(TException::class)
-    override fun writeString(str: String?) {
+    override suspend fun writeString(str: String?) {
         val dat = str!!.toByteArray(StandardCharsets.UTF_8)
         writeI32(dat.size)
-        trans_!!.write(dat, 0, dat.size)
+        trans_.write(dat, 0, dat.size)
     }
 
     @Throws(TException::class)
-    override fun writeBinary(bin: ByteBuffer?) {
-        val length = bin!!.limit() - bin.position()
+    override suspend fun writeBinary(buf: ByteBuffer?) {
+        val length = buf!!.limit() - buf.position()
         writeI32(length)
-        trans_!!.write(bin.array(), bin.position() + bin.arrayOffset(), length)
+        trans_.write(buf.array(), buf.position() + buf.arrayOffset(), length)
     }
 
     /**
      * Reading methods.
      */
     @Throws(TException::class)
-    override fun readMessageBegin(): TMessage {
+    override suspend fun readMessageBegin(): TMessage {
         val size = readI32()
         return if (size < 0) {
             val version = size and VERSION_MASK
@@ -241,31 +240,31 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readMessageEnd() {
+    override suspend fun readMessageEnd() {
     }
 
     @Throws(TException::class)
-    override fun readStructBegin(): TStruct {
+    override suspend fun readStructBegin(): TStruct {
         return ANONYMOUS_STRUCT
     }
 
     @Throws(TException::class)
-    override fun readStructEnd() {
+    override suspend fun readStructEnd() {
     }
 
     @Throws(TException::class)
-    override fun readFieldBegin(): TField {
+    override suspend fun readFieldBegin(): TField {
         val type = readByte()
         val id = if (type == TType.STOP) 0 else readI16()
         return TField("", type, id)
     }
 
     @Throws(TException::class)
-    override fun readFieldEnd() {
+    override suspend fun readFieldEnd() {
     }
 
     @Throws(TException::class)
-    override fun readMapBegin(): TMap {
+    override suspend fun readMapBegin(): TMap {
         val map = TMap(readByte(), readByte(), readI32())
         checkReadBytesAvailable(map)
         checkContainerReadLength(map.size)
@@ -273,11 +272,11 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readMapEnd() {
+    override suspend fun readMapEnd() {
     }
 
     @Throws(TException::class)
-    override fun readListBegin(): TList {
+    override suspend fun readListBegin(): TList {
         val list = TList(readByte(), readI32())
         checkReadBytesAvailable(list)
         checkContainerReadLength(list.size)
@@ -285,11 +284,11 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readListEnd() {
+    override suspend fun readListEnd() {
     }
 
     @Throws(TException::class)
-    override fun readSetBegin(): TSet {
+    override suspend fun readSetBegin(): TSet {
         val set = TSet(readByte(), readI32())
         checkReadBytesAvailable(set)
         checkContainerReadLength(set.size)
@@ -297,19 +296,19 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readSetEnd() {
+    override suspend fun readSetEnd() {
     }
 
     @Throws(TException::class)
-    override fun readBool(): Boolean {
+    override suspend fun readBool(): Boolean {
         return readByte().toInt() == 1
     }
 
     @Throws(TException::class)
-    override fun readByte(): Byte {
-        if (trans_!!.bytesRemainingInBuffer >= 1) {
-            val b = trans_!!.buffer!![trans_!!.bufferPosition]
-            trans_!!.consumeBuffer(1)
+    override suspend fun readByte(): Byte {
+        if (trans_.bytesRemainingInBuffer >= 1) {
+            val b = trans_.buffer!![trans_.bufferPosition]
+            trans_.consumeBuffer(1)
             return b
         }
         readAll(inoutTemp, 0, 1)
@@ -317,96 +316,96 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    override fun readI16(): Short {
+    override suspend fun readI16(): Short {
         var buf: ByteArray? = inoutTemp
         var off = 0
-        if (trans_!!.bytesRemainingInBuffer >= 2) {
-            buf = trans_!!.buffer
-            off = trans_!!.bufferPosition
-            trans_!!.consumeBuffer(2)
+        if (trans_.bytesRemainingInBuffer >= 2) {
+            buf = trans_.buffer
+            off = trans_.bufferPosition
+            trans_.consumeBuffer(2)
         } else {
             readAll(inoutTemp, 0, 2)
         }
-        return ((buf!![off] and 0xff shl 8 or
-                (buf[off + 1] and 0xff)).toShort())
+        return buf!![off] andToShort 0xff shl 8 or
+                (buf[off + 1] andToShort 0xff)
     }
 
     @Throws(TException::class)
-    override fun readI32(): Int {
+    override suspend fun readI32(): Int {
         var buf: ByteArray? = inoutTemp
         var off = 0
-        if (trans_!!.bytesRemainingInBuffer >= 4) {
-            buf = trans_!!.buffer
-            off = trans_!!.bufferPosition
-            trans_!!.consumeBuffer(4)
+        if (trans_.bytesRemainingInBuffer >= 4) {
+            buf = trans_.buffer
+            off = trans_.bufferPosition
+            trans_.consumeBuffer(4)
         } else {
             readAll(inoutTemp, 0, 4)
         }
-        return (buf!![off] and 0xff shl 24 or
-                (buf[off + 1] and 0xff shl 16) or
-                (buf[off + 2] and 0xff shl 8) or
-                (buf[off + 3] and 0xff)).toInt()
+        return buf!![off] andToInt 0xff shl 24 or
+                (buf[off + 1] andToInt 0xff shl 16) or
+                (buf[off + 2] andToInt 0xff shl 8) or
+                (buf[off + 3] andToInt 0xff)
     }
 
     @Throws(TException::class)
-    override fun readI64(): Long {
+    override suspend fun readI64(): Long {
         var buf: ByteArray? = inoutTemp
         var off = 0
-        if (trans_!!.bytesRemainingInBuffer >= 8) {
-            buf = trans_!!.buffer
-            off = trans_!!.bufferPosition
-            trans_!!.consumeBuffer(8)
+        if (trans_.bytesRemainingInBuffer >= 8) {
+            buf = trans_.buffer
+            off = trans_.bufferPosition
+            trans_.consumeBuffer(8)
         } else {
             readAll(inoutTemp, 0, 8)
         }
-        return (buf!![off] and 0xff).toLong() shl 56 or
-                ((buf[off + 1] and 0xff).toLong() shl 48) or
-                ((buf[off + 2] and 0xff).toLong() shl 40) or
-                ((buf[off + 3] and 0xff).toLong() shl 32) or
-                ((buf[off + 4] and 0xff).toLong() shl 24) or
-                ((buf[off + 5] and 0xff).toLong() shl 16) or
-                ((buf[off + 6] and 0xff).toLong() shl 8) or
-                (buf[off + 7] and 0xff).toLong()
+        return (buf!![off] andToLong 0xff) shl 56 or
+                (buf[off + 1] andToLong 0xff shl 48) or
+                (buf[off + 2] andToLong 0xff shl 40) or
+                (buf[off + 3] andToLong 0xff shl 32) or
+                (buf[off + 4] andToLong 0xff shl 24) or
+                (buf[off + 5] andToLong 0xff shl 16) or
+                (buf[off + 6] andToLong 0xff shl 8) or
+                (buf[off + 7] andToLong 0xff)
     }
 
     @Throws(TException::class)
-    override fun readDouble(): Double {
+    override suspend fun readDouble(): Double {
         return java.lang.Double.longBitsToDouble(readI64())
     }
 
     @Throws(TException::class)
-    override fun readString(): String {
+    override suspend fun readString(): String {
         val size = readI32()
-        if (trans_!!.bytesRemainingInBuffer >= size) {
+        if (trans_.bytesRemainingInBuffer >= size) {
             val s = String(
-                trans_!!.buffer!!, trans_!!.bufferPosition,
+                trans_.buffer!!, trans_.bufferPosition,
                 size, StandardCharsets.UTF_8
             )
-            trans_!!.consumeBuffer(size)
+            trans_.consumeBuffer(size)
             return s
         }
         return readStringBody(size)
     }
 
     @Throws(TException::class)
-    fun readStringBody(size: Int): String {
+    suspend fun readStringBody(size: Int): String {
         checkStringReadLength(size)
         val buf = ByteArray(size)
-        trans_!!.readAll(buf, 0, size)
+        trans_.readAll(buf, 0, size)
         return String(buf, StandardCharsets.UTF_8)
     }
 
     @Throws(TException::class)
-    override fun readBinary(): ByteBuffer {
+    override suspend fun readBinary(): ByteBuffer {
         val size = readI32()
         checkStringReadLength(size)
-        if (trans_!!.bytesRemainingInBuffer >= size) {
-            val bb = ByteBuffer.wrap(trans_!!.buffer, trans_!!.bufferPosition, size)
-            trans_!!.consumeBuffer(size)
+        if (trans_.bytesRemainingInBuffer >= size) {
+            val bb = ByteBuffer.wrap(trans_.buffer, trans_.bufferPosition, size)
+            trans_.consumeBuffer(size)
             return bb
         }
         val buf = ByteArray(size)
-        trans_!!.readAll(buf, 0, size)
+        trans_.readAll(buf, 0, size)
         return ByteBuffer.wrap(buf)
     }
 
@@ -418,7 +417,7 @@ class TBinaryProtocol @JvmOverloads constructor(
                 "Negative length: $length"
             )
         }
-        transport!!.checkReadBytesAvailable(length.toLong())
+        transport.checkReadBytesAvailable(length.toLong())
         if (stringLengthLimit_ != NO_LENGTH_LIMIT && length > stringLengthLimit_) {
             throw TProtocolException(
                 TProtocolException.SIZE_LIMIT,
@@ -444,8 +443,8 @@ class TBinaryProtocol @JvmOverloads constructor(
     }
 
     @Throws(TException::class)
-    private fun readAll(buf: ByteArray, off: Int, len: Int): Int {
-        return trans_!!.readAll(buf, off, len)
+    private suspend fun readAll(buf: ByteArray, off: Int, len: Int): Int {
+        return trans_.readAll(buf, off, len)
     }
 
     /**

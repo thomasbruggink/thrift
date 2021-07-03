@@ -25,7 +25,7 @@ import java.util.*
 
 abstract class TLayeredTransport(transport: TTransport) : TTransport() {
     val innerTransport: TTransport
-    override val configuration: TConfiguration?
+    override val configuration: TConfiguration
         get() = innerTransport.configuration
 
     @Throws(TTransportException::class)

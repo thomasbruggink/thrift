@@ -33,23 +33,23 @@ class AutoExpandingBufferWriteTransport(config: TConfiguration?, initialCapacity
     var length: Int
         private set
     private val res: Int
-    override fun close() {}
+    override suspend fun close() {}
     override val isOpen: Boolean
         get() = true
 
     @Throws(TTransportException::class)
-    override fun open() {
+    override suspend fun open() {
     }
 
     @Throws(TTransportException::class)
-    override fun read(buf: ByteArray?, off: Int, len: Int): Int {
+    override suspend fun read(buf: ByteArray, off: Int, len: Int): Int {
         throw UnsupportedOperationException()
     }
 
     @Throws(TTransportException::class)
-    override fun write(toWrite: ByteArray?, off: Int, len: Int) {
-        buf.resizeIfNecessary(length + len)
-        System.arraycopy(toWrite, off, buf.array(), length, len)
+    override suspend fun write(buf: ByteArray, off: Int, len: Int) {
+        this.buf.resizeIfNecessary(length + len)
+        System.arraycopy(buf, off, this.buf.array(), length, len)
         length += len
     }
 

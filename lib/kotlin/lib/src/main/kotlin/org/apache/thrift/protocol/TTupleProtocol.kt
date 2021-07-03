@@ -22,13 +22,15 @@ import org.apache.thrift.TException
 import org.apache.thrift.scheme.IScheme
 import org.apache.thrift.scheme.TupleScheme
 import org.apache.thrift.transport.TTransport
-import java.util.*
+import java.util.BitSet
 import kotlin.experimental.and
 import kotlin.experimental.or
 
-class TTupleProtocol(transport: TTransport?) : TCompactProtocol(transport) {
+class TTupleProtocol(
+        transport: TTransport
+) : TCompactProtocol(transport) {
     class Factory : TProtocolFactory {
-        override fun getProtocol(trans: TTransport?): TProtocol {
+        override fun getProtocol(trans: TTransport): TProtocol {
             return TTupleProtocol(trans)
         }
     }
@@ -37,7 +39,7 @@ class TTupleProtocol(transport: TTransport?) : TCompactProtocol(transport) {
         get() = TupleScheme::class.java
 
     @Throws(TException::class)
-    fun writeBitSet(bs: BitSet, vectorWidth: Int) {
+    suspend fun writeBitSet(bs: BitSet, vectorWidth: Int) {
         val bytes = toByteArray(bs, vectorWidth)
         for (b in bytes) {
             writeByte(b)
@@ -45,7 +47,7 @@ class TTupleProtocol(transport: TTransport?) : TCompactProtocol(transport) {
     }
 
     @Throws(TException::class)
-    fun readBitSet(i: Int): BitSet {
+    suspend fun readBitSet(i: Int): BitSet {
         val length = Math.ceil(i / 8.0).toInt()
         val bytes = ByteArray(length)
         for (j in 0 until length) {
@@ -55,7 +57,7 @@ class TTupleProtocol(transport: TTransport?) : TCompactProtocol(transport) {
     }
 
     @Throws(TException::class)
-    fun readMapBegin(keyType: Byte, valTyep: Byte): TMap {
+    suspend fun readMapBegin(keyType: Byte, valTyep: Byte): TMap {
         val size = super.readI32()
         val map = TMap(keyType, valTyep, size)
         checkReadBytesAvailable(map)
@@ -63,7 +65,7 @@ class TTupleProtocol(transport: TTransport?) : TCompactProtocol(transport) {
     }
 
     @Throws(TException::class)
-    fun readListBegin(type: Byte): TList {
+    suspend fun readListBegin(type: Byte): TList {
         val size = super.readI32()
         val list = TList(type, size)
         checkReadBytesAvailable(list)
@@ -71,20 +73,20 @@ class TTupleProtocol(transport: TTransport?) : TCompactProtocol(transport) {
     }
 
     @Throws(TException::class)
-    fun readSetBegin(type: Byte): TSet {
+    suspend fun readSetBegin(type: Byte): TSet {
         return TSet(readListBegin(type))
     }
 
     @Throws(TException::class)
-    override fun readMapEnd() {
+    override suspend fun readMapEnd() {
     }
 
     @Throws(TException::class)
-    override fun readListEnd() {
+    override suspend fun readListEnd() {
     }
 
     @Throws(TException::class)
-    override fun readSetEnd() {
+    override suspend fun readSetEnd() {
     }
 
     companion object {

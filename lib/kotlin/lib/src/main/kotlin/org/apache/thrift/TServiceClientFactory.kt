@@ -21,11 +21,11 @@ package org.apache.thrift
 import org.apache.thrift.protocol.TProtocol
 
 /**
- * A TServiceClientFactory provides a general way to get a TServiceClient
+ * A TServiceClientFactory provides a general way to get a Client
  * connected to a remote TService via a protocol.
  * @param <T>
 </T> */
-interface TServiceClientFactory<T : TServiceClient> {
+interface TServiceClientFactory<T> {
     /**
      * Get a brand-new T using *prot* as both the input and output protocol.
      * @param prot

@@ -20,6 +20,8 @@ package org.apache.thrift.protocol
 
 import org.apache.thrift.TException
 import org.apache.thrift.and
+import org.apache.thrift.andToInt
+import org.apache.thrift.andToLong
 import org.apache.thrift.shl
 import org.apache.thrift.shr
 import org.apache.thrift.transport.TTransport
@@ -38,7 +40,7 @@ import kotlin.experimental.or
  * and i64 fields you have, the more benefit you'll see.
  */
 open class TCompactProtocol @JvmOverloads constructor(
-    transport: TTransport?,
+    transport: TTransport,
     /**
      * The maximum number of bytes to read from the transport for
      * variable-length fields (such as strings or binary) or [.NO_LENGTH_LIMIT] for
@@ -89,7 +91,7 @@ open class TCompactProtocol @JvmOverloads constructor(
         private val stringLengthLimit_: Long = NO_LENGTH_LIMIT,
         private val containerLengthLimit_: Long = NO_LENGTH_LIMIT
     ) : TProtocolFactory {
-        override fun getProtocol(trans: TTransport?): TProtocol {
+        override fun getProtocol(trans: TTransport): TProtocol {
             return TCompactProtocol(trans, stringLengthLimit_, containerLengthLimit_)
         }
     }
@@ -149,7 +151,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * protocol version so we can migrate forwards in the future if need be.
      */
     @Throws(TException::class)
-    override fun writeMessageBegin(message: TMessage?) {
+    override suspend fun writeMessageBegin(message: TMessage?) {
         writeByteDirect(PROTOCOL_ID)
         writeByteDirect(VERSION and VERSION_MASK.toInt() or (message!!.type shl TYPE_SHIFT_AMOUNT and TYPE_MASK.toInt()))
         writeVarint32(message.seqid)
@@ -162,7 +164,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * stack so we can get the field id deltas correct.
      */
     @Throws(TException::class)
-    override fun writeStructBegin(struct: TStruct?) {
+    override suspend fun writeStructBegin(struct: TStruct?) {
         lastField_.push(lastFieldId_)
         lastFieldId_ = 0
     }
@@ -173,7 +175,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * of the field stack.
      */
     @Throws(TException::class)
-    override fun writeStructEnd() {
+    override suspend fun writeStructEnd() {
         lastFieldId_ = lastField_.pop()
     }
 
@@ -184,7 +186,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * field id will follow the type header as a zigzag varint.
      */
     @Throws(TException::class)
-    override fun writeFieldBegin(field: TField?) {
+    override suspend fun writeFieldBegin(field: TField?) {
         if (field!!.type == TType.BOOL) {
             // we want to possibly include the value, so we'll wait.
             booleanField_ = field
@@ -199,7 +201,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * boolean field case.
      */
     @Throws(TException::class)
-    private fun writeFieldBeginInternal(field: TField?, typeOverride: Byte) {
+    private suspend fun writeFieldBeginInternal(field: TField?, typeOverride: Byte) {
         // short lastField = lastField_.pop();
 
         // if there's a type override, use that.
@@ -222,7 +224,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Write the STOP symbol so we know there are no more fields in this struct.
      */
     @Throws(TException::class)
-    override fun writeFieldStop() {
+    override suspend fun writeFieldStop() {
         writeByteDirect(TType.STOP)
     }
 
@@ -231,7 +233,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * headers, as we don't need any additional information to skip it.
      */
     @Throws(TException::class)
-    override fun writeMapBegin(map: TMap?) {
+    override suspend fun writeMapBegin(map: TMap?) {
         if (map!!.size == 0) {
             writeByteDirect(0)
         } else {
@@ -244,7 +246,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Write a list header.
      */
     @Throws(TException::class)
-    override fun writeListBegin(list: TList?) {
+    override suspend fun writeListBegin(list: TList?) {
         writeCollectionBegin(list!!.elemType, list.size)
     }
 
@@ -252,7 +254,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Write a set header.
      */
     @Throws(TException::class)
-    override fun writeSetBegin(set: TSet?) {
+    override suspend fun writeSetBegin(set: TSet?) {
         writeCollectionBegin(set!!.elemType, set.size)
     }
 
@@ -263,7 +265,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Otherwise, write a single byte.
      */
     @Throws(TException::class)
-    override fun writeBool(b: Boolean) {
+    override suspend fun writeBool(b: Boolean) {
         if (booleanField_ != null) {
             // we haven't written the field header yet
             writeFieldBeginInternal(booleanField_, if (b) Types.BOOLEAN_TRUE else Types.BOOLEAN_FALSE)
@@ -278,7 +280,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Write a byte. Nothing to see here!
      */
     @Throws(TException::class)
-    override fun writeByte(b: Byte) {
+    override suspend fun writeByte(b: Byte) {
         writeByteDirect(b)
     }
 
@@ -286,7 +288,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Write an I16 as a zigzag varint.
      */
     @Throws(TException::class)
-    override fun writeI16(i16: Short) {
+    override suspend fun writeI16(i16: Short) {
         writeVarint32(intToZigZag(i16.toInt()))
     }
 
@@ -294,7 +296,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Write an i32 as a zigzag varint.
      */
     @Throws(TException::class)
-    override fun writeI32(i32: Int) {
+    override suspend fun writeI32(i32: Int) {
         writeVarint32(intToZigZag(i32))
     }
 
@@ -302,7 +304,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Write an i64 as a zigzag varint.
      */
     @Throws(TException::class)
-    override fun writeI64(i64: Long) {
+    override suspend fun writeI64(i64: Long) {
         writeVarint64(longToZigzag(i64))
     }
 
@@ -310,29 +312,29 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Write a double to the wire as 8 bytes.
      */
     @Throws(TException::class)
-    override fun writeDouble(dub: Double) {
+    override suspend fun writeDouble(dub: Double) {
         fixedLongToBytes(java.lang.Double.doubleToLongBits(dub), temp, 0)
-        trans_!!.write(temp, 0, 8)
+        trans_.write(temp, 0, 8)
     }
 
     /**
      * Write a string to the wire with a varint size preceding.
      */
     @Throws(TException::class)
-    override fun writeString(str: String?) {
+    override suspend fun writeString(str: String?) {
         val bytes = str!!.toByteArray(StandardCharsets.UTF_8)
         writeVarint32(bytes.size)
-        trans_!!.write(bytes, 0, bytes.size)
+        trans_.write(bytes, 0, bytes.size)
     }
 
     /**
      * Write a byte array, using a varint for the size.
      */
     @Throws(TException::class)
-    override fun writeBinary(bin: ByteBuffer?) {
+    override suspend fun writeBinary(bin: ByteBuffer?) {
         val bb = bin!!.asReadOnlyBuffer()
         writeVarint32(bb.remaining())
-        trans_!!.write(bb)
+        trans_.write(bb)
     }
 
     //
@@ -340,23 +342,23 @@ open class TCompactProtocol @JvmOverloads constructor(
     // output or purpose.
     //
     @Throws(TException::class)
-    override fun writeMessageEnd() {
+    override suspend fun writeMessageEnd() {
     }
 
     @Throws(TException::class)
-    override fun writeMapEnd() {
+    override suspend fun writeMapEnd() {
     }
 
     @Throws(TException::class)
-    override fun writeListEnd() {
+    override suspend fun writeListEnd() {
     }
 
     @Throws(TException::class)
-    override fun writeSetEnd() {
+    override suspend fun writeSetEnd() {
     }
 
     @Throws(TException::class)
-    override fun writeFieldEnd() {
+    override suspend fun writeFieldEnd() {
     }
     //
     // Internal writing methods
@@ -366,7 +368,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * the wire differ only by the type indicator.
      */
     @Throws(TException::class)
-    protected fun writeCollectionBegin(elemType: Byte, size: Int) {
+    protected suspend fun writeCollectionBegin(elemType: Byte, size: Int) {
         if (size <= 14) {
             writeByteDirect(size shl 4 or getCompactType(elemType).toInt())
         } else {
@@ -380,41 +382,41 @@ open class TCompactProtocol @JvmOverloads constructor(
      * TODO: make a permanent buffer like writeVarint64?
      */
     @Throws(TException::class)
-    private fun writeVarint32(n: Int) {
-        var n = n
+    private suspend fun writeVarint32(n: Int) {
+        var localN = n
         var idx = 0
         while (true) {
             if (n and 0x7F.inv() == 0) {
-                temp[idx++] = n.toByte()
+                temp[idx++] = localN.toByte()
                 // writeByteDirect((byte)n);
                 break
                 // return;
             } else {
-                temp[idx++] = (n and 0x7F or 0x80).toByte()
+                temp[idx++] = (localN and 0x7F or 0x80).toByte()
                 // writeByteDirect((byte)((n & 0x7F) | 0x80));
-                n = n ushr 7
+                localN = localN ushr 7
             }
         }
-        trans_!!.write(temp, 0, idx)
+        trans_.write(temp, 0, idx)
     }
 
     /**
      * Write an i64 as a varint. Results in 1-10 bytes on the wire.
      */
     @Throws(TException::class)
-    private fun writeVarint64(n: Long) {
-        var n = n
+    private suspend fun writeVarint64(n: Long) {
+        var localN = n
         var idx = 0
         while (true) {
-            if (n and 0x7FL.inv() == 0L) {
-                temp[idx++] = n.toByte()
+            if (localN and 0x7FL.inv() == 0L) {
+                temp[idx++] = localN.toByte()
                 break
             } else {
-                temp[idx++] = (n and 0x7F or 0x80).toByte()
-                n = n ushr 7
+                temp[idx++] = (localN and 0x7F or 0x80).toByte()
+                localN = n ushr 7
             }
         }
-        trans_!!.write(temp, 0, idx)
+        trans_.write(temp, 0, idx)
     }
 
     /**
@@ -453,16 +455,16 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Used internally by other writing methods that know they need to write a byte.
      */
     @Throws(TException::class)
-    private fun writeByteDirect(b: Byte) {
+    private suspend fun writeByteDirect(b: Byte) {
         temp[0] = b
-        trans_!!.write(temp, 0, 1)
+        trans_.write(temp, 0, 1)
     }
 
     /**
      * Writes a byte without any possibility of all that field header nonsense.
      */
     @Throws(TException::class)
-    private fun writeByteDirect(n: Int) {
+    private suspend fun writeByteDirect(n: Int) {
         writeByteDirect(n.toByte())
     }
     //
@@ -472,7 +474,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Read a message header.
      */
     @Throws(TException::class)
-    override fun readMessageBegin(): TMessage {
+    override suspend fun readMessageBegin(): TMessage {
         val protocolId = readByte()
         if (protocolId != PROTOCOL_ID) {
             throw TProtocolException(
@@ -497,7 +499,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * opportunity to push a new struct begin marker onto the field stack.
      */
     @Throws(TException::class)
-    override fun readStructBegin(): TStruct {
+    override suspend fun readStructBegin(): TStruct {
         lastField_.push(lastFieldId_)
         lastFieldId_ = 0
         return ANONYMOUS_STRUCT
@@ -508,7 +510,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * this struct from the field stack.
      */
     @Throws(TException::class)
-    override fun readStructEnd() {
+    override suspend fun readStructEnd() {
         // consume the last field we read off the wire.
         lastFieldId_ = lastField_.pop()
     }
@@ -517,7 +519,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Read a field header off the wire.
      */
     @Throws(TException::class)
-    override fun readFieldBegin(): TField {
+    override suspend fun readFieldBegin(): TField {
         val type = readByte()
 
         // if it's a stop, then we can return immediately, as the struct is over.
@@ -555,7 +557,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * "correct" types.
      */
     @Throws(TException::class)
-    override fun readMapBegin(): TMap {
+    override suspend fun readMapBegin(): TMap {
         val size = readVarint32()
         checkContainerReadLength(size)
         val keyAndValueType = if (size == 0) 0 else readByte()
@@ -571,7 +573,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * true size.
      */
     @Throws(TException::class)
-    override fun readListBegin(): TList {
+    override suspend fun readListBegin(): TList {
         val size_and_type = readByte()
         var size: Int = (size_and_type shr 4 and 0x0f).toInt()
         if (size == 15) {
@@ -590,7 +592,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * true size.
      */
     @Throws(TException::class)
-    override fun readSetBegin(): TSet {
+    override suspend fun readSetBegin(): TSet {
         return TSet(readListBegin()!!)
     }
 
@@ -600,7 +602,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * pre-stored value. Otherwise, read a byte.
      */
     @Throws(TException::class)
-    override fun readBool(): Boolean {
+    override suspend fun readBool(): Boolean {
         if (boolValue_ != null) {
             val result: Boolean = boolValue_ as Boolean
             boolValue_ = null
@@ -613,13 +615,13 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Read a single byte off the wire. Nothing interesting here.
      */
     @Throws(TException::class)
-    override fun readByte(): Byte {
+    override suspend fun readByte(): Byte {
         val b: Byte
-        if (trans_!!.bytesRemainingInBuffer > 0) {
-            b = trans_!!.buffer!![trans_!!.bufferPosition]
-            trans_!!.consumeBuffer(1)
+        if (trans_.bytesRemainingInBuffer > 0) {
+            b = trans_.buffer!![trans_.bufferPosition]
+            trans_.consumeBuffer(1)
         } else {
-            trans_!!.readAll(temp, 0, 1)
+            trans_.readAll(temp, 0, 1)
             b = temp[0]
         }
         return b
@@ -629,7 +631,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Read an i16 from the wire as a zigzag varint.
      */
     @Throws(TException::class)
-    override fun readI16(): Short {
+    override suspend fun readI16(): Short {
         return zigzagToInt(readVarint32()).toShort()
     }
 
@@ -637,7 +639,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Read an i32 from the wire as a zigzag varint.
      */
     @Throws(TException::class)
-    override fun readI32(): Int {
+    override suspend fun readI32(): Int {
         return zigzagToInt(readVarint32())
     }
 
@@ -645,7 +647,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Read an i64 from the wire as a zigzag varint.
      */
     @Throws(TException::class)
-    override fun readI64(): Long {
+    override suspend fun readI64(): Long {
         return zigzagToLong(readVarint64())
     }
 
@@ -653,8 +655,8 @@ open class TCompactProtocol @JvmOverloads constructor(
      * No magic here - just read a double off the wire.
      */
     @Throws(TException::class)
-    override fun readDouble(): Double {
-        trans_!!.readAll(temp, 0, 8)
+    override suspend fun readDouble(): Double {
+        trans_.readAll(temp, 0, 8)
         return java.lang.Double.longBitsToDouble(bytesToLong(temp))
     }
 
@@ -662,19 +664,19 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Reads a byte[] (via readBinary), and then UTF-8 decodes it.
      */
     @Throws(TException::class)
-    override fun readString(): String {
+    override suspend fun readString(): String {
         val length = readVarint32()
         checkStringReadLength(length)
         if (length == 0) {
             return ""
         }
         val str: String
-        if (trans_!!.bytesRemainingInBuffer >= length) {
+        if (trans_.bytesRemainingInBuffer >= length) {
             str = String(
-                trans_!!.buffer!!, trans_!!.bufferPosition,
+                trans_.buffer!!, trans_.bufferPosition,
                 length, StandardCharsets.UTF_8
             )
-            trans_!!.consumeBuffer(length)
+            trans_.consumeBuffer(length)
         } else {
             str = String(readBinary(length), StandardCharsets.UTF_8)
         }
@@ -685,19 +687,19 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Read a ByteBuffer from the wire.
      */
     @Throws(TException::class)
-    override fun readBinary(): ByteBuffer {
+    override suspend fun readBinary(): ByteBuffer {
         val length = readVarint32()
         if (length == 0) {
             return EMPTY_BUFFER
         }
         transport!!.checkReadBytesAvailable(length.toLong())
-        if (trans_!!.bytesRemainingInBuffer >= length) {
-            val bb = ByteBuffer.wrap(trans_!!.buffer, trans_!!.bufferPosition, length)
-            trans_!!.consumeBuffer(length)
+        if (trans_.bytesRemainingInBuffer >= length) {
+            val bb = ByteBuffer.wrap(trans_.buffer, trans_.bufferPosition, length)
+            trans_.consumeBuffer(length)
             return bb
         }
         val buf = ByteArray(length)
-        trans_!!.readAll(buf, 0, length)
+        trans_.readAll(buf, 0, length)
         return ByteBuffer.wrap(buf)
     }
 
@@ -705,10 +707,10 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Read a byte[] of a known length from the wire.
      */
     @Throws(TException::class)
-    private fun readBinary(length: Int): ByteArray {
+    private suspend fun readBinary(length: Int): ByteArray {
         if (length == 0) return EMPTY_BYTES
         val buf = ByteArray(length)
-        trans_!!.readAll(buf, 0, length)
+        trans_.readAll(buf, 0, length)
         return buf
     }
 
@@ -720,7 +722,7 @@ open class TCompactProtocol @JvmOverloads constructor(
                 "Negative length: $length"
             )
         }
-        transport!!.checkReadBytesAvailable(length.toLong())
+        transport.checkReadBytesAvailable(length.toLong())
         if (stringLengthLimit_ != NO_LENGTH_LIMIT && length > stringLengthLimit_) {
             throw TProtocolException(
                 TProtocolException.SIZE_LIMIT,
@@ -750,23 +752,23 @@ open class TCompactProtocol @JvmOverloads constructor(
     // encoding.
     //
     @Throws(TException::class)
-    override fun readMessageEnd() {
+    override suspend fun readMessageEnd() {
     }
 
     @Throws(TException::class)
-    override fun readFieldEnd() {
+    override suspend fun readFieldEnd() {
     }
 
     @Throws(TException::class)
-    override fun readMapEnd() {
+    override suspend fun readMapEnd() {
     }
 
     @Throws(TException::class)
-    override fun readListEnd() {
+    override suspend fun readListEnd() {
     }
 
     @Throws(TException::class)
-    override fun readSetEnd() {
+    override suspend fun readSetEnd() {
     }
     //
     // Internal reading methods
@@ -776,25 +778,25 @@ open class TCompactProtocol @JvmOverloads constructor(
      * if there is another byte to follow. This can read up to 5 bytes.
      */
     @Throws(TException::class)
-    private fun readVarint32(): Int {
+    private suspend fun readVarint32(): Int {
         var result = 0
         var shift = 0
-        if (trans_!!.bytesRemainingInBuffer >= 5) {
-            val buf = trans_!!.buffer
-            val pos = trans_!!.bufferPosition
+        if (trans_.bytesRemainingInBuffer >= 5) {
+            val buf = trans_.buffer
+            val pos = trans_.bufferPosition
             var off = 0
             while (true) {
                 val b = buf!![pos + off]
-                result = result or ((b and 0x7f) as Int shl shift)
+                result = result or ((b andToInt 0x7f) shl shift)
                 if ((b and 0x80).toInt() != 0x80) break
                 shift += 7
                 off++
             }
-            trans_!!.consumeBuffer(off + 1)
+            trans_.consumeBuffer(off + 1)
         } else {
             while (true) {
                 val b = readByte()
-                result = result or ((b and 0x7f) as Int shl shift)
+                result = result or ((b andToInt 0x7f) shl shift)
                 if ((b and 0x80).toInt() != 0x80) break
                 shift += 7
             }
@@ -807,25 +809,25 @@ open class TCompactProtocol @JvmOverloads constructor(
      * if there is another byte to follow. This can read up to 10 bytes.
      */
     @Throws(TException::class)
-    private fun readVarint64(): Long {
+    private suspend fun readVarint64(): Long {
         var shift = 0
         var result: Long = 0
-        if (trans_!!.bytesRemainingInBuffer >= 10) {
-            val buf = trans_!!.buffer
-            val pos = trans_!!.bufferPosition
+        if (trans_.bytesRemainingInBuffer >= 10) {
+            val buf = trans_.buffer
+            val pos = trans_.bufferPosition
             var off = 0
             while (true) {
                 val b = buf!![pos + off]
-                result = result or ((b and 0x7f) as Long shl shift)
+                result = result or ((b andToLong 0x7f) shl shift)
                 if ((b and 0x80).toInt() != 0x80) break
                 shift += 7
                 off++
             }
-            trans_!!.consumeBuffer(off + 1)
+            trans_.consumeBuffer(off + 1)
         } else {
             while (true) {
                 val b = readByte()
-                result = result or ((b and 0x7f) as Long shl shift)
+                result = result or ((b andToLong 0x7f) shl shift)
                 if ((b and 0x80).toInt() != 0x80) break
                 shift += 7
             }
@@ -879,7 +881,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      */
     @Throws(TProtocolException::class)
     private fun getTType(type: Byte): Byte {
-        return when ((type and 0x0f) as Byte) {
+        return when ((type and 0x0f)) {
             TType.STOP -> TType.STOP
             Types.BOOLEAN_FALSE, Types.BOOLEAN_TRUE -> TType.BOOL
             Types.BYTE -> TType.BYTE

@@ -52,7 +52,7 @@ class TApplicationException : TException, TSerializable {
         }
 
     @Throws(TException::class)
-    override fun read(iprot: TProtocol) {
+    override suspend fun read(iprot: TProtocol) {
         var field: TField
         iprot.readStructBegin()
         var message: String? = null
@@ -83,13 +83,11 @@ class TApplicationException : TException, TSerializable {
     }
 
     @Throws(TException::class)
-    override fun write(oprot: TProtocol) {
+    override suspend fun write(oprot: TProtocol) {
         oprot.writeStructBegin(TAPPLICATION_EXCEPTION_STRUCT)
-        if (message != null) {
-            oprot.writeFieldBegin(MESSAGE_FIELD)
-            oprot.writeString(message)
-            oprot.writeFieldEnd()
-        }
+        oprot.writeFieldBegin(MESSAGE_FIELD)
+        oprot.writeString(message)
+        oprot.writeFieldEnd()
         oprot.writeFieldBegin(TYPE_FIELD)
         oprot.writeI32(type)
         oprot.writeFieldEnd()
@@ -118,7 +116,7 @@ class TApplicationException : TException, TSerializable {
          * Convenience factory method for constructing a TApplicationException given a TProtocol input
          */
         @Throws(TException::class)
-        fun readFrom(iprot: TProtocol): TApplicationException {
+        suspend fun readFrom(iprot: TProtocol): TApplicationException {
             val result = TApplicationException()
             result.read(iprot)
             return result

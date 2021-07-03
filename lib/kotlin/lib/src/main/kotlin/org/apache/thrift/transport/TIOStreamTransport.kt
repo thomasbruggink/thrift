@@ -18,9 +18,11 @@
  */
 package org.apache.thrift.transport
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.apache.thrift.TConfiguration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.apache.thrift.TConfiguration
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -32,7 +34,7 @@ import java.io.OutputStream
  * has to provide a variety of types of streams.
  *
  */
-class TIOStreamTransport : TEndpointTransport {
+open class TIOStreamTransport : TEndpointTransport {
     /** Underlying inputStream  */
     protected var inputStream_: InputStream? = null
 
@@ -43,73 +45,73 @@ class TIOStreamTransport : TEndpointTransport {
      * Subclasses can invoke the default constructor and then assign the input
      * streams in the open method.
      */
-    protected constructor(config: TConfiguration?) : super(config) {}
+    protected constructor(config: TConfiguration?) : super(config)
 
     /**
      * Subclasses can invoke the default constructor and then assign the input
      * streams in the open method.
      */
-    protected constructor() : super(TConfiguration()) {}
+    protected constructor() : super(TConfiguration())
 
     /**
      * Input stream constructor, constructs an input only transport.
      *
      * @param config
-     * @param is Input stream to read from
+     * @param inputStream Input stream to read from
      */
-    constructor(config: TConfiguration?, `is`: InputStream?) : super(config) {
-        inputStream_ = `is`
+    constructor(config: TConfiguration?, inputStream: InputStream?) : super(config) {
+        inputStream_ = inputStream
     }
 
     /**
      * Input stream constructor, constructs an input only transport.
      *
-     * @param is Input stream to read from
+     * @param inputStream Input stream to read from
      */
-    constructor(`is`: InputStream?) : super(TConfiguration()) {
-        inputStream_ = `is`
+    constructor(inputStream: InputStream?) : super(TConfiguration()) {
+        inputStream_ = inputStream
     }
 
     /**
      * Output stream constructor, constructs an output only transport.
      *
      * @param config
-     * @param os Output stream to write to
+     * @param outputStream Output stream to write to
      */
-    constructor(config: TConfiguration?, os: OutputStream?) : super(config) {
-        outputStream_ = os
+    constructor(config: TConfiguration?, outputStream: OutputStream?) : super(config) {
+        outputStream_ = outputStream
     }
 
     /**
      * Output stream constructor, constructs an output only transport.
      *
-     * @param os Output stream to write to
+     * @param outputStream Output stream to write to
      */
-    constructor(os: OutputStream?) : super(TConfiguration()) {
-        outputStream_ = os
+    constructor(outputStream: OutputStream?) : super(TConfiguration()) {
+        outputStream_ = outputStream
     }
 
     /**
      * Two-way stream constructor.
      *
      * @param config
-     * @param is Input stream to read from
-     * @param os Output stream to read from
+     * @param `is` Input stream to read from
+     * @param outputStream Output stream to read from
      */
-    constructor(config: TConfiguration?, `is`: InputStream?, os: OutputStream?) : super(config) {
-        inputStream_ = `is`
-        outputStream_ = os
+    constructor(config: TConfiguration?, inputStream: InputStream?, outputStream: OutputStream?) : super(config) {
+        inputStream_ = inputStream
+        outputStream_ = outputStream
     }
 
     /**
      * Two-way stream constructor.
      *
-     * @param is Input stream to read from
-     * @param os Output stream to read from
+     * @param `is` Input stream to read from
+     * @param outputStream Output stream to read from
      */
-    constructor(`is`: InputStream?, os: OutputStream?) : super(TConfiguration()) {
-        inputStream_ = `is`
-        outputStream_ = os
+    constructor(inputStream: InputStream?, outputStream: OutputStream?) : super(TConfiguration()) {
+        inputStream_ = inputStream
+        outputStream_ = outputStream
     }
 
     /**
@@ -123,13 +125,13 @@ class TIOStreamTransport : TEndpointTransport {
      * The streams must already be open. This method does nothing.
      */
     @Throws(TTransportException::class)
-    override fun open() {
+    override suspend fun open() {
     }
 
     /**
      * Closes both the input and output streams.
      */
-    override fun close() {
+    override suspend fun close() = withContext(Dispatchers.IO) {
         try {
             if (inputStream_ != null) {
                 try {
@@ -155,12 +157,11 @@ class TIOStreamTransport : TEndpointTransport {
      * Reads from the underlying input stream if not null.
      */
     @Throws(TTransportException::class)
-    override fun read(buf: ByteArray?, off: Int, len: Int): Int {
+    override suspend fun read(buf: ByteArray, off: Int, len: Int): Int = withContext(Dispatchers.IO) {
         if (inputStream_ == null) {
             throw TTransportException(TTransportException.NOT_OPEN, "Cannot read from null inputStream")
         }
-        val bytesRead: Int
-        bytesRead = try {
+        val bytesRead: Int = try {
             inputStream_!!.read(buf, off, len)
         } catch (iox: IOException) {
             throw TTransportException(TTransportException.UNKNOWN, iox)
@@ -168,14 +169,14 @@ class TIOStreamTransport : TEndpointTransport {
         if (bytesRead < 0) {
             throw TTransportException(TTransportException.END_OF_FILE, "Socket is closed by peer.")
         }
-        return bytesRead
+        return@withContext bytesRead
     }
 
     /**
      * Writes to the underlying output stream if not null.
      */
     @Throws(TTransportException::class)
-    override fun write(buf: ByteArray?, off: Int, len: Int) {
+    override suspend fun write(buf: ByteArray, off: Int, len: Int) = withContext(Dispatchers.IO) {
         if (outputStream_ == null) {
             throw TTransportException(TTransportException.NOT_OPEN, "Cannot write to null outputStream")
         }
@@ -190,7 +191,7 @@ class TIOStreamTransport : TEndpointTransport {
      * Flushes the underlying output stream if not null.
      */
     @Throws(TTransportException::class)
-    override fun flush() {
+    override suspend fun flush() = withContext(Dispatchers.IO) {
         if (outputStream_ == null) {
             throw TTransportException(TTransportException.NOT_OPEN, "Cannot flush null outputStream")
         }

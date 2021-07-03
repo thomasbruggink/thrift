@@ -23,7 +23,7 @@ import java.util.*
 
 abstract class TEndpointTransport(config: TConfiguration?) : TTransport() {
     protected val maxMessageSize: Long
-        protected get() = configuration.maxMessageSize.toLong()
+        get() = configuration.maxMessageSize.toLong()
     protected var knownMessageSize: Long = 0
     protected var remainingMessageSize: Long = 0
     override val configuration: TConfiguration

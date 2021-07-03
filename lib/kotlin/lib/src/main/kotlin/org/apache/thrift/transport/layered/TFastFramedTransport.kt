@@ -18,6 +18,8 @@
  */
 package org.apache.thrift.transport.layered
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.apache.thrift.TConfiguration
 import org.apache.thrift.transport.AutoExpandingBufferReadTransport
 import org.apache.thrift.transport.AutoExpandingBufferWriteTransport
@@ -61,7 +63,7 @@ class TFastFramedTransport @JvmOverloads constructor(
     private val initialBufferCapacity: Int
     private val i32buf = ByteArray(4)
     private val maxLength: Int
-    override fun close() {
+    override suspend fun close() {
         innerTransport.close()
     }
 
@@ -69,12 +71,12 @@ class TFastFramedTransport @JvmOverloads constructor(
         get() = innerTransport.isOpen
 
     @Throws(TTransportException::class)
-    override fun open() {
+    override suspend fun open() {
         innerTransport.open()
     }
 
     @Throws(TTransportException::class)
-    override fun read(buf: ByteArray?, off: Int, len: Int): Int {
+    override suspend fun read(buf: ByteArray, off: Int, len: Int): Int {
         val got: Int = readBuffer.read(buf, off, len)
         if (got > 0) {
             return got
@@ -86,14 +88,14 @@ class TFastFramedTransport @JvmOverloads constructor(
     }
 
     @Throws(TTransportException::class)
-    private fun readFrame() {
+    private suspend fun readFrame() = withContext(Dispatchers.IO) {
         innerTransport.readAll(i32buf, 0, 4)
         val size = TFramedTransport.decodeFrameSize(i32buf)
         if (size < 0) {
             close()
             throw TTransportException(TTransportException.CORRUPTED_DATA, "Read a negative frame size ($size)!")
         }
-        if (size > innerTransport.configuration!!.maxFrameSize) {
+        if (size > innerTransport.configuration.maxFrameSize) {
             close()
             throw TTransportException(
                 TTransportException.CORRUPTED_DATA,
@@ -104,11 +106,11 @@ class TFastFramedTransport @JvmOverloads constructor(
     }
 
     @Throws(TTransportException::class)
-    override fun write(buf: ByteArray?, off: Int, len: Int) {
+    override suspend fun write(buf: ByteArray, off: Int, len: Int) {
         writeBuffer.write(buf, off, len)
     }
 
-    override fun consumeBuffer(len: Int) {
+    override suspend fun consumeBuffer(len: Int) {
         readBuffer.consumeBuffer(len)
     }
 
@@ -121,7 +123,7 @@ class TFastFramedTransport @JvmOverloads constructor(
     }
 
     @Throws(TTransportException::class)
-    override fun flush() {
+    override suspend fun flush() {
         val payloadLength: Int = writeBuffer.length - 4
         val data: ByteArray = writeBuffer.buf.array()
         TFramedTransport.encodeFrameSize(payloadLength, data)
