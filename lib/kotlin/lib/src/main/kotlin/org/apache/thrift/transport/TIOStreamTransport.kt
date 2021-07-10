@@ -21,11 +21,12 @@ package org.apache.thrift.transport
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.thrift.TConfiguration
+import org.apache.thrift.runCompletable
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
+import java.nio.ByteBuffer
+import java.nio.channels.AsynchronousByteChannel
 
 /**
  * This is the most commonly used base transport. It takes an InputStream or
@@ -35,11 +36,11 @@ import java.io.OutputStream
  *
  */
 open class TIOStreamTransport : TEndpointTransport {
-    /** Underlying inputStream  */
-    protected var inputStream_: InputStream? = null
+    /** Underlying stream  */
+    protected var stream: AsynchronousByteChannel? = null
 
-    /** Underlying outputStream  */
-    protected var outputStream_: OutputStream? = null
+    /** Read/write timeout of the channel **/
+    protected var timeout: Int = 0
 
     /**
      * Subclasses can invoke the default constructor and then assign the input
@@ -57,61 +58,19 @@ open class TIOStreamTransport : TEndpointTransport {
      * Input stream constructor, constructs an input only transport.
      *
      * @param config
-     * @param inputStream Input stream to read from
+     * @param stream Stream to read from
      */
-    constructor(config: TConfiguration, inputStream: InputStream?) : super(config) {
-        inputStream_ = inputStream
+    constructor(config: TConfiguration, stream: AsynchronousByteChannel) : super(config) {
+        this.stream = stream
     }
 
     /**
      * Input stream constructor, constructs an input only transport.
      *
-     * @param inputStream Input stream to read from
+     * @param stream Stream to read from
      */
-    constructor(inputStream: InputStream?) : super(TConfiguration()) {
-        inputStream_ = inputStream
-    }
-
-    /**
-     * Output stream constructor, constructs an output only transport.
-     *
-     * @param config
-     * @param outputStream Output stream to write to
-     */
-    constructor(config: TConfiguration, outputStream: OutputStream?) : super(config) {
-        outputStream_ = outputStream
-    }
-
-    /**
-     * Output stream constructor, constructs an output only transport.
-     *
-     * @param outputStream Output stream to write to
-     */
-    constructor(outputStream: OutputStream?) : super(TConfiguration()) {
-        outputStream_ = outputStream
-    }
-
-    /**
-     * Two-way stream constructor.
-     *
-     * @param config
-     * @param `is` Input stream to read from
-     * @param outputStream Output stream to read from
-     */
-    constructor(config: TConfiguration, inputStream: InputStream?, outputStream: OutputStream?) : super(config) {
-        inputStream_ = inputStream
-        outputStream_ = outputStream
-    }
-
-    /**
-     * Two-way stream constructor.
-     *
-     * @param `is` Input stream to read from
-     * @param outputStream Output stream to read from
-     */
-    constructor(inputStream: InputStream?, outputStream: OutputStream?) : super(TConfiguration()) {
-        inputStream_ = inputStream
-        outputStream_ = outputStream
+    constructor(stream: AsynchronousByteChannel) : super(TConfiguration()) {
+        this.stream = stream
     }
 
     /**
@@ -119,7 +78,7 @@ open class TIOStreamTransport : TEndpointTransport {
      * @return false after close is called.
      */
     override val isOpen: Boolean
-        get() = inputStream_ != null || outputStream_ != null
+        get() = stream?.isOpen == true
 
     /**
      * The streams must already be open. This method does nothing.
@@ -132,24 +91,17 @@ open class TIOStreamTransport : TEndpointTransport {
      * Closes both the input and output streams.
      */
     override suspend fun close() = withContext(Dispatchers.IO) {
+        if (stream == null) {
+            throw TTransportException(TTransportException.NOT_OPEN, "Cannot read from null inputStream")
+        }
         try {
-            if (inputStream_ != null) {
-                try {
-                    inputStream_!!.close()
-                } catch (iox: IOException) {
-                    LOGGER.warn("Error closing input stream.", iox)
-                }
-            }
-            if (outputStream_ != null) {
-                try {
-                    outputStream_!!.close()
-                } catch (iox: IOException) {
-                    LOGGER.warn("Error closing output stream.", iox)
-                }
+            try {
+                stream!!.close()
+            } catch (iox: IOException) {
+                LOGGER.warn("Error closing input stream.", iox)
             }
         } finally {
-            inputStream_ = null
-            outputStream_ = null
+            stream = null
         }
     }
 
@@ -157,31 +109,35 @@ open class TIOStreamTransport : TEndpointTransport {
      * Reads from the underlying input stream if not null.
      */
     @Throws(TTransportException::class)
-    override suspend fun read(buf: ByteArray, off: Int, len: Int): Int = withContext(Dispatchers.IO) {
-        if (inputStream_ == null) {
+    override suspend fun read(buf: ByteArray, off: Int, len: Int): Int {
+        if (stream == null) {
             throw TTransportException(TTransportException.NOT_OPEN, "Cannot read from null inputStream")
         }
         val bytesRead: Int = try {
-            inputStream_!!.read(buf, off, len)
+            runCompletable(timeout) {
+                stream!!.read(ByteBuffer.wrap(buf, off, len), null, it)
+            }
         } catch (iox: IOException) {
             throw TTransportException(TTransportException.UNKNOWN, iox)
         }
         if (bytesRead < 0) {
             throw TTransportException(TTransportException.END_OF_FILE, "Socket is closed by peer.")
         }
-        return@withContext bytesRead
+        return bytesRead
     }
 
     /**
      * Writes to the underlying output stream if not null.
      */
     @Throws(TTransportException::class)
-    override suspend fun write(buf: ByteArray, off: Int, len: Int) = withContext(Dispatchers.IO) {
-        if (outputStream_ == null) {
+    override suspend fun write(buf: ByteArray, off: Int, len: Int) {
+        if (stream == null) {
             throw TTransportException(TTransportException.NOT_OPEN, "Cannot write to null outputStream")
         }
         try {
-            outputStream_!!.write(buf, off, len)
+            runCompletable<Int>(timeout) {
+                stream!!.write(ByteBuffer.wrap(buf, off, len), null, it)
+            }
         } catch (iox: IOException) {
             throw TTransportException(TTransportException.UNKNOWN, iox)
         }
@@ -192,14 +148,8 @@ open class TIOStreamTransport : TEndpointTransport {
      */
     @Throws(TTransportException::class)
     override suspend fun flush() = withContext(Dispatchers.IO) {
-        if (outputStream_ == null) {
+        if (stream == null) {
             throw TTransportException(TTransportException.NOT_OPEN, "Cannot flush null outputStream")
-        }
-        try {
-            outputStream_!!.flush()
-            resetConsumedMessageSize(-1)
-        } catch (iox: IOException) {
-            throw TTransportException(TTransportException.UNKNOWN, iox)
         }
     }
 

@@ -3024,7 +3024,7 @@ void t_kotlin_generator::generate_service_async_client(t_service *tservice) {
   indent(f_service_) << "class AsyncClient(" << endl;
   indent(f_service_) << "    inputProtocol: org.apache.thrift.protocol.TProtocol," << endl;
   indent(f_service_) << "    outputProtocol: org.apache.thrift.protocol.TProtocol " << endl;
-  indent(f_service_) << ") : org.apache.thrift.async.TAsyncClient(inputProtocol, outputProtocol), AsyncIface {" << endl;
+  indent(f_service_) << ") : org.apache.thrift.TAsyncClient(inputProtocol, outputProtocol), AsyncIface {" << endl;
   indent_up();
 
   // Overload constructor
@@ -4846,7 +4846,7 @@ void t_kotlin_generator::generate_kotlin_struct_clear(std::ostream &out, t_struc
 void t_kotlin_generator::generate_kotlin_struct_write_object(ostream &out, t_struct *tstruct) {
   (void) tstruct;
   indent(out)
-          << "suspend fun writeObject(out:java.io.ObjectOutputStream) {"
+          << "suspend fun writeObject(out:java.nio.channels.AsynchronousByteChannel) {"
           << endl;
   indent(out) << "  try {" << endl;
   indent(out) << "    write(org.apache.thrift.protocol.TCompactProtocol("
@@ -4860,7 +4860,7 @@ void t_kotlin_generator::generate_kotlin_struct_write_object(ostream &out, t_str
 
 // generates kotlin method to serialize the object
 void t_kotlin_generator::generate_kotlin_struct_read_object(ostream &out, t_struct *tstruct) {
-  indent(out) << "suspend fun readObject(inp:java.io.ObjectInputStream) {" << endl;
+  indent(out) << "suspend fun readObject(inp:java.nio.channels.AsynchronousByteChannel) {" << endl;
   indent(out) << "  try {" << endl;
   if (!tstruct->is_union()) {
     switch (needs_isset(tstruct)) {

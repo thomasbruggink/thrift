@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.thrift.async
+package org.apache.thrift
 
-import org.apache.thrift.TApplicationException
-import org.apache.thrift.TBase
-import org.apache.thrift.TException
 import org.apache.thrift.protocol.TMessage
 import org.apache.thrift.protocol.TMessageType
 import org.apache.thrift.protocol.TProtocol

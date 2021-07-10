@@ -22,13 +22,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.apache.thrift.TConfiguration
+import org.apache.thrift.runCompletable
 import org.slf4j.LoggerFactory
-import java.io.BufferedInputStream
-import java.io.BufferedOutputStream
 import java.io.IOException
 import java.net.InetSocketAddress
-import java.net.Socket
 import java.net.SocketException
+import java.net.StandardSocketOptions
+import java.nio.channels.AsynchronousSocketChannel
 
 /**
  * Socket implementation of the TTransport interface. To be commented soon!
@@ -36,29 +36,34 @@ import java.net.SocketException
  */
 class TSocket : TIOStreamTransport {
     /**
-     * Wrapped Socket object
+     * Socket object
      */
-    private var socket_: Socket? = null
+    lateinit var socket: AsynchronousSocketChannel
+        private set
 
     /**
      * Remote host
      */
-    private var host_: String? = null
+    private var host: String? = null
 
     /**
      * Remote port
      */
-    private var port_ = 0
+    private var port = 0
 
     /**
      * Socket timeout - read timeout on the socket
      */
-    private var socketTimeout_ = 0
+    var socketTimeout
+        get() = super.timeout
+        set(value) {
+            super.timeout = value
+        }
 
     /**
      * Connection timeout
      */
-    private var connectTimeout_ = 0
+    var connectTimeout = 0
 
     /**
      * Constructor that takes an already created socket.
@@ -66,19 +71,18 @@ class TSocket : TIOStreamTransport {
      * @param socket Already created socket object
      * @throws TTransportException if there is an error setting up the streams
      */
-    constructor(socket: Socket?) : super(TConfiguration()) {
-        socket_ = socket
+    constructor(socket: AsynchronousSocketChannel) : super(TConfiguration()) {
+        this.socket = socket
         try {
-            socket_!!.setSoLinger(false, 0)
-            socket_!!.tcpNoDelay = true
-            socket_!!.keepAlive = true
+            this.socket.setOption(StandardSocketOptions.SO_LINGER, 0)
+            this.socket.setOption(StandardSocketOptions.TCP_NODELAY, true)
+            this.socket.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
         } catch (sx: SocketException) {
             LOGGER.warn("Could not configure socket.", sx)
         }
         if (isOpen) {
             try {
-                inputStream_ = BufferedInputStream(socket_!!.getInputStream())
-                outputStream_ = BufferedOutputStream(socket_!!.getOutputStream())
+                stream = this.socket
             } catch (iox: IOException) {
                 runBlocking { close() }
                 throw TTransportException(TTransportException.NOT_OPEN, iox)
@@ -93,7 +97,8 @@ class TSocket : TIOStreamTransport {
      * @param host Remote host
      * @param port Remote port
      */
-    constructor(host: String?, port: Int) : this(TConfiguration(), host, port, 0) {}
+    constructor(host: String?, port: Int) : this(TConfiguration(), host, port, 0)
+
     /**
      * Creates a new unconnected socket that will connect to the given host
      * on the given port.
@@ -103,6 +108,14 @@ class TSocket : TIOStreamTransport {
      * @param port    Remote port
      * @param timeout Socket timeout and connection timeout
      */
+    constructor(config: TConfiguration, host: String?, port: Int, timeout: Int = 0) : this(
+        config,
+        host,
+        port,
+        timeout,
+        timeout
+    )
+
     /**
      * Creates a new unconnected socket that will connect to the given host
      * on the given port.
@@ -111,15 +124,12 @@ class TSocket : TIOStreamTransport {
      * @param host Remote host
      * @param port Remote port
      */
-    @JvmOverloads
-    constructor(config: TConfiguration, host: String?, port: Int, timeout: Int = 0) : this(
+    constructor(config: TConfiguration, host: String?, port: Int) : this(
         config,
         host,
         port,
-        timeout,
-        timeout
-    ) {
-    }
+        0
+    )
 
     /**
      * Creates a new unconnected socket that will connect to the given host
@@ -135,10 +145,10 @@ class TSocket : TIOStreamTransport {
     constructor(config: TConfiguration, host: String?, port: Int, socketTimeout: Int, connectTimeout: Int) : super(
         config
     ) {
-        host_ = host
-        port_ = port
-        socketTimeout_ = socketTimeout
-        connectTimeout_ = connectTimeout
+        this.host = host
+        this.port = port
+        this.socketTimeout = socketTimeout
+        this.connectTimeout = connectTimeout
         initSocket()
     }
 
@@ -146,90 +156,38 @@ class TSocket : TIOStreamTransport {
      * Initializes the socket object
      */
     private fun initSocket() {
-        socket_ = Socket()
+        socket = AsynchronousSocketChannel.open()
         try {
-            socket_!!.setSoLinger(false, 0)
-            socket_!!.tcpNoDelay = true
-            socket_!!.keepAlive = true
-            socket_!!.soTimeout = socketTimeout_
+//            this.socket.setOption(StandardSocketOptions.SO_LINGER, 0)
+            this.socket.setOption(StandardSocketOptions.TCP_NODELAY, true)
+            this.socket.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
         } catch (sx: SocketException) {
             LOGGER.error("Could not configure socket.", sx)
         }
     }
 
     /**
-     * Sets the socket timeout and connection timeout.
-     *
-     * @param timeout Milliseconds timeout
-     */
-    fun setTimeout(timeout: Int) {
-        setConnectTimeout(timeout)
-        setSocketTimeout(timeout)
-    }
-
-    /**
-     * Sets the time after which the connection attempt will time out
-     *
-     * @param timeout Milliseconds timeout
-     */
-    fun setConnectTimeout(timeout: Int) {
-        connectTimeout_ = timeout
-    }
-
-    /**
-     * Sets the socket timeout
-     *
-     * @param timeout Milliseconds timeout
-     */
-    fun setSocketTimeout(timeout: Int) {
-        socketTimeout_ = timeout
-        try {
-            socket_!!.soTimeout = timeout
-        } catch (sx: SocketException) {
-            LOGGER.warn("Could not set socket timeout.", sx)
-        }
-    }
-
-    /**
-     * Returns a reference to the underlying socket.
-     */
-    val socket: Socket?
-        get() {
-            if (socket_ == null) {
-                initSocket()
-            }
-            return socket_
-        }
-
-    /**
      * Checks whether the socket is connected.
      */
     override val isOpen: Boolean
-        get() = if (socket_ == null) {
-            false
-        } else socket_!!.isConnected
+        get() = socket.isOpen
 
     /**
      * Connects the socket, creating a new socket object if necessary.
      */
     @Throws(TTransportException::class)
-    override suspend fun open() = withContext(Dispatchers.IO) {
-        if (isOpen) {
-            throw TTransportException(TTransportException.ALREADY_OPEN, "Socket already connected.")
-        }
-        if (host_ == null || host_!!.length == 0) {
+    override suspend fun open() {
+        if (host == null || host!!.isEmpty()) {
             throw TTransportException(TTransportException.NOT_OPEN, "Cannot open null host.")
         }
-        if (port_ <= 0 || port_ > 65535) {
-            throw TTransportException(TTransportException.NOT_OPEN, "Invalid port $port_")
-        }
-        if (socket_ == null) {
-            initSocket()
+        if (port <= 0 || port > 65535) {
+            throw TTransportException(TTransportException.NOT_OPEN, "Invalid port $port")
         }
         try {
-            socket_!!.connect(InetSocketAddress(host_, port_), connectTimeout_)
-            inputStream_ = BufferedInputStream(socket_!!.getInputStream())
-            outputStream_ = BufferedOutputStream(socket_!!.getOutputStream())
+            runCompletable<Void?>(connectTimeout) {
+                socket.connect(InetSocketAddress(host, port), null, it)
+            }
+            stream = socket
         } catch (iox: IOException) {
             close()
             throw TTransportException(TTransportException.NOT_OPEN, iox)
@@ -244,17 +202,14 @@ class TSocket : TIOStreamTransport {
         super.close()
 
         // Close the socket
-        if (socket_ != null) {
-            try {
-                socket_!!.close()
-            } catch (iox: IOException) {
-                LOGGER.warn("Could not close socket.", iox)
-            }
-            socket_ = null
+        try {
+            socket.close()
+        } catch (iox: IOException) {
+            LOGGER.warn("Could not close socket.", iox)
         }
     }
 
-    companion object {
+    private companion object {
         private val LOGGER = LoggerFactory.getLogger(TSocket::class.java.name)
     }
 }

@@ -77,7 +77,9 @@ class TMemoryBuffer : TEndpointTransport {
         return amtToRead
     }
 
-    override suspend fun write(buf: ByteArray, off: Int, len: Int) = withContext(Dispatchers.IO) {
+    override suspend fun write(buf: ByteArray, off: Int, len: Int) {
+        // This operation is not blocking.
+        @Suppress("BlockingMethodInNonBlockingContext")
         arr_.write(buf, off, len)
     }
 

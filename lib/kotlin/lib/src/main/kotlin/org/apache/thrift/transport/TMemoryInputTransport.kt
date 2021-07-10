@@ -32,8 +32,8 @@ class TMemoryInputTransport constructor(
         private set
     private var endPos_ = 0
 
-    constructor(buf: ByteArray) : this(TConfiguration(), buf) {}
-    constructor(buf: ByteArray, offset: Int, length: Int) : this(TConfiguration(), buf, offset, length) {}
+    constructor(buf: ByteArray) : this(TConfiguration(), buf)
+    constructor(buf: ByteArray, offset: Int, length: Int) : this(TConfiguration(), buf, offset, length)
 
     fun reset(buf: ByteArray, offset: Int = 0, length: Int = buf.size) {
         buffer = buf
