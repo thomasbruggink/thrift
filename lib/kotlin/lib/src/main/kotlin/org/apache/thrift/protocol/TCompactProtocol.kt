@@ -22,6 +22,7 @@ import org.apache.thrift.TException
 import org.apache.thrift.and
 import org.apache.thrift.andToInt
 import org.apache.thrift.andToLong
+import org.apache.thrift.andToShort
 import org.apache.thrift.shl
 import org.apache.thrift.shr
 import org.apache.thrift.transport.TTransport
@@ -31,7 +32,7 @@ import java.nio.charset.StandardCharsets
 import kotlin.experimental.or
 
 /**
- * TCompactProtocol2 is the Java implementation of the compact protocol specified
+ * TCompactProtocol is the Kotlin implementation of the compact protocol specified
  * in THRIFT-110. The fundamental approach to reducing the overhead of
  * structures is a) use variable-length integers all over the place and b) make
  * use of unused bits wherever possible. Your savings will obviously vary
@@ -331,8 +332,8 @@ open class TCompactProtocol @JvmOverloads constructor(
      * Write a byte array, using a varint for the size.
      */
     @Throws(TException::class)
-    override suspend fun writeBinary(bin: ByteBuffer?) {
-        val bb = bin!!.asReadOnlyBuffer()
+    override suspend fun writeBinary(buf: ByteBuffer?) {
+        val bb = buf!!.asReadOnlyBuffer()
         writeVarint32(bb.remaining())
         trans_.write(bb)
     }
@@ -478,15 +479,17 @@ open class TCompactProtocol @JvmOverloads constructor(
         val protocolId = readByte()
         if (protocolId != PROTOCOL_ID) {
             throw TProtocolException(
-                "Expected protocol id " + Integer.toHexString(PROTOCOL_ID.toInt()) + " but got " + Integer.toHexString(
-                    protocolId.toInt()
-                )
+                "Expected protocol id ${Integer.toHexString(PROTOCOL_ID.toInt())} but got ${
+                    Integer.toHexString(
+                        protocolId.toInt()
+                    )
+                }"
             )
         }
         val versionAndType = readByte()
         val version = (versionAndType and VERSION_MASK.toInt())
         if (version != VERSION) {
-            throw TProtocolException("Expected version " + VERSION + " but got " + version)
+            throw TProtocolException("Expected version $VERSION but got $version")
         }
         val type = (versionAndType shr TYPE_SHIFT_AMOUNT and TYPE_BITS.toInt())
         val seqid = readVarint32()
@@ -529,21 +532,21 @@ open class TCompactProtocol @JvmOverloads constructor(
         val fieldId: Short
 
         // mask off the 4 MSB of the type header. it could contain a field id delta.
-        val modifier = (type and 0xf0 shr 4) as Short
-        fieldId = if (modifier.toInt() == 0) {
+        val modifier = type andToShort 0xf0 shr 4
+        fieldId = if (modifier == 0) {
             // not a delta. look ahead for the zigzag varint field id.
             readI16()
         } else {
             // has a delta. add the delta to the last read field id.
             (lastFieldId_ + modifier).toShort()
         }
-        val field = TField("", getTType((type and 0x0f) as Byte), fieldId)
+        val field = TField("", getTType((type and 0x0f)), fieldId)
 
         // if this happens to be a boolean field, the value is encoded in the type
         if (isBoolType(type)) {
             // save the boolean value in a special instance variable.
             boolValue_ =
-                if ((type and 0x0f) as Byte == Types.BOOLEAN_TRUE) java.lang.Boolean.TRUE else java.lang.Boolean.FALSE
+                if ((type and 0x0f) == Types.BOOLEAN_TRUE) java.lang.Boolean.TRUE else java.lang.Boolean.FALSE
         }
 
         // push the new field onto the field stack so we can keep the deltas going.
@@ -561,7 +564,7 @@ open class TCompactProtocol @JvmOverloads constructor(
         val size = readVarint32()
         checkContainerReadLength(size)
         val keyAndValueType = if (size == 0) 0 else readByte()
-        val map = TMap(getTType((keyAndValueType shr 4) as Byte), getTType((keyAndValueType and 0xf) as Byte), size)
+        val map = TMap(getTType((keyAndValueType shr 4)), getTType((keyAndValueType and 0xf)), size)
         checkReadBytesAvailable(map)
         return map
     }
@@ -574,13 +577,13 @@ open class TCompactProtocol @JvmOverloads constructor(
      */
     @Throws(TException::class)
     override suspend fun readListBegin(): TList {
-        val size_and_type = readByte()
-        var size: Int = (size_and_type shr 4 and 0x0f).toInt()
+        val sizeAndType = readByte()
+        var size: Int = (sizeAndType shr 4 and 0x0f).toInt()
         if (size == 15) {
             size = readVarint32()
         }
         checkContainerReadLength(size)
-        val list = TList(getTType(size_and_type), size)
+        val list = TList(getTType(sizeAndType), size)
         checkReadBytesAvailable(list)
         return list
     }
@@ -593,7 +596,7 @@ open class TCompactProtocol @JvmOverloads constructor(
      */
     @Throws(TException::class)
     override suspend fun readSetBegin(): TSet {
-        return TSet(readListBegin()!!)
+        return TSet(readListBegin())
     }
 
     /**
@@ -692,7 +695,7 @@ open class TCompactProtocol @JvmOverloads constructor(
         if (length == 0) {
             return EMPTY_BUFFER
         }
-        transport!!.checkReadBytesAvailable(length.toLong())
+        transport.checkReadBytesAvailable(length.toLong())
         if (trans_.bytesRemainingInBuffer >= length) {
             val bb = ByteBuffer.wrap(trans_.buffer, trans_.bufferPosition, length)
             trans_.consumeBuffer(length)
@@ -927,18 +930,4 @@ open class TCompactProtocol @JvmOverloads constructor(
             else -> throw TTransportException(TTransportException.UNKNOWN, "unrecognized type code")
         }
     }
-    /**
-     * Create a TCompactProtocol.
-     *
-     * @param transport the TTransport object to read from or write to.
-     * @param stringLengthLimit_ the maximum number of bytes to read for
-     * variable-length fields.
-     * @param containerLengthLimit_ the maximum number of elements to read
-     * for containers.
-     */
-    /**
-     * Create a TCompactProtocol.
-     *
-     * @param transport the TTransport object to read from or write to.
-     */
 }
