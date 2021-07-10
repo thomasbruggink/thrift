@@ -73,7 +73,7 @@ class TFramedTransport @JvmOverloads constructor(
     override val isOpen: Boolean
         get() = innerTransport.isOpen
 
-    override suspend fun close() = withContext(Dispatchers.IO) {
+    override suspend fun close() {
         innerTransport.close()
     }
 

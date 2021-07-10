@@ -45,7 +45,7 @@ open class TIOStreamTransport : TEndpointTransport {
      * Subclasses can invoke the default constructor and then assign the input
      * streams in the open method.
      */
-    protected constructor(config: TConfiguration?) : super(config)
+    protected constructor(config: TConfiguration) : super(config)
 
     /**
      * Subclasses can invoke the default constructor and then assign the input
@@ -59,7 +59,7 @@ open class TIOStreamTransport : TEndpointTransport {
      * @param config
      * @param inputStream Input stream to read from
      */
-    constructor(config: TConfiguration?, inputStream: InputStream?) : super(config) {
+    constructor(config: TConfiguration, inputStream: InputStream?) : super(config) {
         inputStream_ = inputStream
     }
 
@@ -78,7 +78,7 @@ open class TIOStreamTransport : TEndpointTransport {
      * @param config
      * @param outputStream Output stream to write to
      */
-    constructor(config: TConfiguration?, outputStream: OutputStream?) : super(config) {
+    constructor(config: TConfiguration, outputStream: OutputStream?) : super(config) {
         outputStream_ = outputStream
     }
 
@@ -98,7 +98,7 @@ open class TIOStreamTransport : TEndpointTransport {
      * @param `is` Input stream to read from
      * @param outputStream Output stream to read from
      */
-    constructor(config: TConfiguration?, inputStream: InputStream?, outputStream: OutputStream?) : super(config) {
+    constructor(config: TConfiguration, inputStream: InputStream?, outputStream: OutputStream?) : super(config) {
         inputStream_ = inputStream
         outputStream_ = outputStream
     }

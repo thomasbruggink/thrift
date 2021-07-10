@@ -112,7 +112,13 @@ class TSocket : TIOStreamTransport {
      * @param port Remote port
      */
     @JvmOverloads
-    constructor(config: TConfiguration?, host: String?, port: Int, timeout: Int = 0) : this(config, host, port, timeout, timeout) {
+    constructor(config: TConfiguration, host: String?, port: Int, timeout: Int = 0) : this(
+        config,
+        host,
+        port,
+        timeout,
+        timeout
+    ) {
     }
 
     /**
@@ -126,7 +132,9 @@ class TSocket : TIOStreamTransport {
      * @param socketTimeout   Socket timeout
      * @param connectTimeout  Connection timeout
      */
-    constructor(config: TConfiguration?, host: String?, port: Int, socketTimeout: Int, connectTimeout: Int) : super(config) {
+    constructor(config: TConfiguration, host: String?, port: Int, socketTimeout: Int, connectTimeout: Int) : super(
+        config
+    ) {
         host_ = host
         port_ = port
         socketTimeout_ = socketTimeout

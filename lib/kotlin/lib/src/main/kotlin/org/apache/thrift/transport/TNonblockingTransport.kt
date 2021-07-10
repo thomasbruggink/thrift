@@ -23,7 +23,7 @@ import java.io.IOException
 import java.nio.channels.SelectionKey
 import java.nio.channels.Selector
 
-abstract class TNonblockingTransport(config: TConfiguration?) : TEndpointTransport(config) {
+abstract class TNonblockingTransport(config: TConfiguration) : TEndpointTransport(config) {
     /**
      * Non-blocking connection initialization.
      * @see java.nio.channels.SocketChannel.connect
@@ -37,6 +37,7 @@ abstract class TNonblockingTransport(config: TConfiguration?) : TEndpointTranspo
      */
     @Throws(IOException::class)
     abstract fun finishConnect(): Boolean
+
     @Throws(IOException::class)
     abstract fun registerSelector(selector: Selector?, interests: Int): SelectionKey?
 }

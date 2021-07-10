@@ -23,8 +23,11 @@ import org.apache.thrift.TConfiguration
 /**
  * TTransport for writing to an AutoExpandingBuffer.
  */
-class AutoExpandingBufferWriteTransport(config: TConfiguration?, initialCapacity: Int, frontReserve: Int) :
-    TEndpointTransport(config) {
+class AutoExpandingBufferWriteTransport(
+    config: TConfiguration,
+    initialCapacity: Int,
+    frontReserve: Int
+) : TEndpointTransport(config) {
     val buf: AutoExpandingBuffer
 
     /**

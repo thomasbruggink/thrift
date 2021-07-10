@@ -20,7 +20,12 @@ package org.apache.thrift.transport
 
 import org.apache.thrift.TConfiguration
 
-class TMemoryInputTransport @JvmOverloads constructor(_configuration: TConfiguration? = TConfiguration(), buf: ByteArray = ByteArray(0), offset: Int = 0, length: Int = buf.size) : TEndpointTransport(_configuration) {
+class TMemoryInputTransport constructor(
+    _configuration: TConfiguration = TConfiguration(),
+    buf: ByteArray = ByteArray(0),
+    offset: Int = 0,
+    length: Int = buf.size
+) : TEndpointTransport(_configuration) {
     override var buffer: ByteArray? = null
         private set
     override var bufferPosition = 0
@@ -30,7 +35,6 @@ class TMemoryInputTransport @JvmOverloads constructor(_configuration: TConfigura
     constructor(buf: ByteArray) : this(TConfiguration(), buf) {}
     constructor(buf: ByteArray, offset: Int, length: Int) : this(TConfiguration(), buf, offset, length) {}
 
-    @JvmOverloads
     fun reset(buf: ByteArray, offset: Int = 0, length: Int = buf.size) {
         buffer = buf
         bufferPosition = offset

@@ -170,7 +170,7 @@ class TFastFramedTransport @JvmOverloads constructor(
      * your messages are going to be very large.
      */
     init {
-        val config = if (Objects.isNull(underlying.configuration)) TConfiguration() else underlying.configuration!!
+        val config = if (Objects.isNull(underlying.configuration)) TConfiguration() else underlying.configuration
         this.maxLength = maxLength
         config.maxFrameSize = maxLength
         this.initialBufferCapacity = initialBufferCapacity

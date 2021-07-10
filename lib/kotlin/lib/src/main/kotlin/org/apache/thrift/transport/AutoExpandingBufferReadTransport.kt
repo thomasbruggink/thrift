@@ -23,7 +23,7 @@ import org.apache.thrift.TConfiguration
 /**
  * TTransport for reading from an AutoExpandingBuffer.
  */
-class AutoExpandingBufferReadTransport(config: TConfiguration?, initialCapacity: Int) :
+class AutoExpandingBufferReadTransport(config: TConfiguration, initialCapacity: Int) :
     TEndpointTransport(config) {
     private val buf: AutoExpandingBuffer = AutoExpandingBuffer(initialCapacity)
     override var bufferPosition = 0

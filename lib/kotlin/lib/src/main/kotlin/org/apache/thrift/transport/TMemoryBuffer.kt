@@ -49,7 +49,7 @@ class TMemoryBuffer : TEndpointTransport {
      * @param config
      * @param size the initial size of the buffer
      */
-    constructor(config: TConfiguration?, size: Int) : super(config) {
+    constructor(config: TConfiguration, size: Int) : super(config) {
         arr_ = TByteArrayOutputStream(size)
         updateKnownMessageSize(size.toLong())
     }

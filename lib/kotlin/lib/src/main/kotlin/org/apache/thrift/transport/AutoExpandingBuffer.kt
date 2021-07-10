@@ -18,7 +18,7 @@
  */
 package org.apache.thrift.transport
 
-import java.util.Arrays
+import kotlin.math.max
 
 /**
  * Helper class that wraps a byte[] so that it can expand and be reused. Users
@@ -34,8 +34,8 @@ class AutoExpandingBuffer(initialCapacity: Int) {
         if (currentCapacity < size) {
             // Increase by a factor of 1.5x
             val growCapacity = currentCapacity + (currentCapacity shr 1)
-            val newCapacity = Math.max(growCapacity, size)
-            array = Arrays.copyOf(array, newCapacity)
+            val newCapacity = max(growCapacity, size)
+            array = array.copyOf(newCapacity)
         }
     }
 

@@ -1,27 +1,26 @@
 package com.testing
 
-import com.testing.api.*
+import com.testing.api.MyTestService
+import com.testing.api.testOneRequest
+import kotlinx.coroutines.coroutineScope
+import org.apache.thrift.protocol.TBinaryProtocol
+import org.apache.thrift.transport.TSocket
+import org.apache.thrift.transport.layered.TFramedTransport
 
-fun main() {
-    val union = ABCombiner.b(B("foo", "bar"))
-    val error = Error().setErrorCode(ErrorCodes.INVALID_CODE).setReason("Crash!")
-    println("${error.getErrorCode()} Reason: ${error.getReason()}")
-    val childAll = ChildAll().setInnerVariable(1)
-    val hello = HelloAll().setVariable1("Hi")
-        .setVariable2(2)
-        .setVariable3(3L)
-        .setChildNode(childAll)
-        .setCombiner(union)
-    println("${hello.getVariable1()} ${hello.getVariable2()} ${hello.getChildNode()?.getInnerVariable()}")
+suspend fun main() = coroutineScope {
+    println("Building transport")
+    val transport = TSocket("localhost", 9090)
+    transport.open()
+    println("Building framedtransport")
+    val framedTransport = TFramedTransport(transport)
+    println("Building protocol")
+    val protocol = TBinaryProtocol(framedTransport)
+    println("Building client")
+    val client = MyTestService.AsyncClient(protocol)
 
-    when (hello.getCombiner()?.getFieldValue()) {
-        ABCombiner.Fields.A -> {
-            val a = hello.getCombiner()?.getA()
-            println("Type: a, ${a?.getP1()}")
-        }
-        ABCombiner.Fields.B -> {
-            val b = hello.getCombiner()?.getB()
-            println("Type: b, ${b?.getP3()}")
-        }
-    }
+    println("Building request")
+    val request = testOneRequest("kotlin")
+    println("Calling service")
+    val result = client.testMethod(request)
+    println("Result: ${result.getAnswer()}")
 }

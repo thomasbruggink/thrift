@@ -21,7 +21,7 @@ package org.apache.thrift.transport.layered
 import org.apache.thrift.TConfiguration
 import org.apache.thrift.transport.TTransport
 import org.apache.thrift.transport.TTransportException
-import java.util.*
+import java.util.Objects
 
 abstract class TLayeredTransport(transport: TTransport) : TTransport() {
     val innerTransport: TTransport

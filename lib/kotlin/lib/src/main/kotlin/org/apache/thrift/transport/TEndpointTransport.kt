@@ -19,14 +19,13 @@
 package org.apache.thrift.transport
 
 import org.apache.thrift.TConfiguration
-import java.util.*
 
-abstract class TEndpointTransport(config: TConfiguration?) : TTransport() {
-    protected val maxMessageSize: Long
+abstract class TEndpointTransport(config: TConfiguration) : TTransport() {
+    private val maxMessageSize: Long
         get() = configuration.maxMessageSize.toLong()
-    protected var knownMessageSize: Long = 0
-    protected var remainingMessageSize: Long = 0
-    override val configuration: TConfiguration
+    private var knownMessageSize: Long = 0
+    private var remainingMessageSize: Long = 0
+    override val configuration: TConfiguration = config
 
     /**
      * Resets RemainingMessageSize to the configured maximum
@@ -89,7 +88,6 @@ abstract class TEndpointTransport(config: TConfiguration?) : TTransport() {
     }
 
     init {
-        configuration = if (Objects.isNull(config)) TConfiguration() else config!!
         resetConsumedMessageSize(-1)
     }
 }
