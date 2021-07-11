@@ -191,9 +191,7 @@ public:
 
     void generate_service_async_server(t_service *tservice);
 
-    void generate_process_function(t_service *tservice, t_function *tfunction);
-
-    void generate_process_async_function(t_service *tservice, t_function *tfunction);
+    void generate_process_function(t_service *tservice, t_function *tfunction, bool async);
 
     void generate_kotlin_union(t_struct *tstruct);
 
@@ -2780,7 +2778,7 @@ void t_kotlin_generator::generate_service(t_service *tservice) {
   generate_service_client(tservice);
   generate_service_async_client(tservice);
   generate_service_server(tservice);
-  // generate_service_async_server(tservice);
+  generate_service_async_server(tservice);
   generate_service_helpers(tservice);
 
   indent_down();
@@ -3223,7 +3221,7 @@ void t_kotlin_generator::generate_service_server(t_service *tservice) {
 
   // Generate the process subfunctions
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
-    generate_process_function(tservice, *f_iter);
+    generate_process_function(tservice, *f_iter, false);
   }
 
   indent_down();
@@ -3246,51 +3244,47 @@ void t_kotlin_generator::generate_service_async_server(t_service *tservice) {
   string extends = "";
   string extends_processor = "";
   if (tservice->get_extends() == nullptr) {
-    extends_processor = "org.apache.thrift.TBaseAsyncProcessor<I>";
+    extends_processor = "org.apache.thrift.TAsyncBaseProcessor<AsyncIface>(iface, processMap)";
   } else {
     extends = type_name(tservice->get_extends());
-    extends_processor = extends + ".AsyncProcessor<I>";
+    extends_processor = extends + ".Processor<AsyncIface>";
   }
 
   // Generate the header portion
-  indent(f_service_) << "class AsyncProcessor<I extends AsyncIface> extends "
-                     << extends_processor << " {" << endl;
+  indent(f_service_) << "class AsyncProcessor(" << endl;
+  indent_up();
+  indent(f_service_) << "iface:AsyncIface," << endl;
+  indent(f_service_) << "processMap:Map<String, org.apache.thrift.AsyncProcessFunction<AsyncIface, out org.apache.thrift.TBase<*, *>>>" << endl;
+  indent_down();
+  indent(f_service_) << "): " << extends_processor << ", org.apache.thrift.TProcessor {" << endl;
   indent_up();
 
-  indent(f_service_) << "private static final org.slf4j.Logger _LOGGER = "
-                        "org.slf4j.LoggerFactory.getLogger(AsyncProcessor.class.getName());" << endl;
+  indent(f_service_) << "constructor(iface:AsyncIface): this(iface, getProcessMap(mutableMapOf<String, "
+                     << "org.apache.thrift.AsyncProcessFunction<AsyncIface, out org.apache.thrift.TBase<*, *>>>()))"
+                     << endl << endl;
 
-  indent(f_service_) << "public AsyncProcessor(I iface) {" << endl;
-  indent(f_service_) << "  super(iface, getProcessMap(java.util.HashMap<kotlin.lang.String, "
-                        "org.apache.thrift.AsyncProcessFunction<I, ? extends "
-                        "org.apache.thrift.TBase, ?>>()));" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "protected AsyncProcessor(I iface, kotlin.util.Map<kotlin.lang.String,  "
-                        "org.apache.thrift.AsyncProcessFunction<I, ? extends  "
-                        "org.apache.thrift.TBase, ?>> processMap) {" << endl;
-  indent(f_service_) << "  super(iface, getProcessMap(processMap));" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "private static <I extends AsyncIface> kotlin.util.Map<kotlin.lang.String,  "
-                        "org.apache.thrift.AsyncProcessFunction<I, ? extends  "
-                        "org.apache.thrift.TBase,?>> getProcessMap(kotlin.util.Map<kotlin.lang.String,  "
-                        "org.apache.thrift.AsyncProcessFunction<I, ? extends  "
-                        "org.apache.thrift.TBase, ?>> processMap) {" << endl;
+  indent(f_service_) << "companion object {" << endl;
+  indent_up();
+  indent(f_service_) << "fun getProcessMap(processMap: MutableMap<String, "
+                        "org.apache.thrift.AsyncProcessFunction<AsyncIface, out org.apache.thrift.TBase<*, *>>>): "
+                        "Map<String, org.apache.thrift.AsyncProcessFunction<AsyncIface, "
+                        "out org.apache.thrift.TBase<*, *>>> {" << endl;
   indent_up();
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
-    indent(f_service_) << "processMap.put(\"" << (*f_iter)->get_name() << "\", "
-                       << (*f_iter)->get_name() << "());" << endl;
+    indent(f_service_) << "processMap[\"" << (*f_iter)->get_name() << "\"] = "
+                       << (*f_iter)->get_name() << "()" << endl;
   }
-  indent(f_service_) << "return processMap;" << endl;
+  indent(f_service_) << "return processMap.toMap()" << endl;
   indent_down();
   indent(f_service_) << "}" << endl << endl;
 
   // Generate the process subfunctions
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
-    generate_process_async_function(tservice, *f_iter);
+    generate_process_function(tservice, *f_iter, true);
   }
 
+  indent_down();
+  indent(f_service_) << "}" << endl;
   indent_down();
   indent(f_service_) << "}" << endl << endl;
 }
@@ -3326,217 +3320,20 @@ void t_kotlin_generator::generate_function_helpers(t_function *tfunction) {
  *
  * @param tfunction The function to write a dispatcher for
  */
-void t_kotlin_generator::generate_process_async_function(t_service *tservice, t_function *tfunction) {
-  string argsname = tfunction->get_name() + "_args";
-
-  string resultname = tfunction->get_name() + "_result";
-  if (tfunction->is_oneway()) {
-    resultname = "org.apache.thrift.TBase";
-  }
-
-  string resulttype = type_name(tfunction->get_returntype(), true);
-
-  (void) tservice;
-  // Open class
-  indent(f_service_) << "public class " << tfunction->get_name()
-                     << "<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, "
-                     << argsname << ", " << resulttype << "> {" << endl;
-  indent_up();
-
-  indent(f_service_) << "public " << tfunction->get_name() << "() {" << endl;
-  indent(f_service_) << "  super(\"" << tfunction->get_name() << "\");" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "public " << argsname << " getEmptyArgsInstance() {" << endl;
-  indent(f_service_) << "  return " << argsname << "();" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "public org.apache.thrift.async.AsyncMethodCallback<" << resulttype
-                     << "> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {"
-                     << endl;
-  indent_up();
-  indent(f_service_) << "final org.apache.thrift.AsyncProcessFunction fcall = this;" << endl;
-  indent(f_service_) << "return org.apache.thrift.async.AsyncMethodCallback<" << resulttype
-                     << ">() { " << endl;
-  indent_up();
-  indent(f_service_) << "public void onComplete(" << resulttype << " o) {" << endl;
-
-  indent_up();
-  if (!tfunction->is_oneway()) {
-    indent(f_service_) << resultname << " result = " << resultname << "();" << endl;
-
-    if (!tfunction->get_returntype()->is_void()) {
-      indent(f_service_) << "result.success = o;" << endl;
-      // Set isset on success field
-      if (!type_can_be_null(tfunction->get_returntype())) {
-        indent(f_service_) << "result.set" << get_cap_name("success") << get_cap_name("isSet")
-                           << "(true);" << endl;
-      }
-    }
-
-    indent(f_service_) << "try {" << endl;
-    indent(f_service_)
-            << "  fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);"
-            << endl;
-    indent(f_service_) << "} catch (org.apache.thrift.transport.TTransportException e) {" << endl;
-    indent_up();
-    f_service_ << indent()
-               << "_LOGGER.error(\"TTransportException writing to internal frame buffer\", e);"
-               << endl
-               << indent() << "fb.close();" << endl;
-    indent_down();
-    indent(f_service_) << "} catch (kotlin.lang.Exception e) {" << endl;
-    indent_up();
-    f_service_ << indent() << "_LOGGER.error(\"Exception writing to internal frame buffer\", e);"
-               << endl
-               << indent() << "onError(e);" << endl;
-    indent_down();
-    indent(f_service_) << "}" << endl;
-  }
-  indent_down();
-  indent(f_service_) << "}" << endl;
-
-  indent(f_service_) << "public void onError(kotlin.lang.Exception e) {" << endl;
-  indent_up();
-
-  if (tfunction->is_oneway()) {
-    indent(f_service_) << "if (e instanceof org.apache.thrift.transport.TTransportException) {"
-                       << endl;
-    indent_up();
-
-    f_service_ << indent() << "_LOGGER.error(\"TTransportException inside handler\", e);" << endl
-               << indent() << "fb.close();" << endl;
-
-    indent_down();
-    indent(f_service_) << "} else {" << endl;
-    indent_up();
-
-    f_service_ << indent() << "_LOGGER.error(\"Exception inside oneway handler\", e);" << endl;
-
-    indent_down();
-    indent(f_service_) << "}" << endl;
-  } else {
-    indent(f_service_) << "byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;" << endl;
-    indent(f_service_) << "org.apache.thrift.TSerializable msg;" << endl;
-    indent(f_service_) << resultname << " result = " << resultname << "();" << endl;
-
-    t_struct *xs = tfunction->get_xceptions();
-    const std::vector<t_field *> &xceptions = xs->get_members();
-
-    vector<t_field *>::const_iterator x_iter;
-    if (xceptions.size() > 0) {
-      for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
-        if (x_iter == xceptions.begin())
-          f_service_ << indent();
-        string type = type_name((*x_iter)->get_type(), false, false);
-        string name = (*x_iter)->get_name();
-        f_service_ << "if (e instanceof " << type << ") {" << endl;
-        indent_up();
-        f_service_ << indent() << "result." << name << " = (" << type << ") e;" << endl
-                   << indent() << "result.set" << get_cap_name(name) << get_cap_name("isSet")
-                   << "(true);" << endl
-                   << indent() << "msg = result;" << endl;
-        indent_down();
-        indent(f_service_) << "} else ";
-      }
-    } else {
-      indent(f_service_);
-    }
-    f_service_ << "if (e instanceof org.apache.thrift.transport.TTransportException) {" << endl;
-    indent_up();
-    f_service_ << indent() << "_LOGGER.error(\"TTransportException inside handler\", e);" << endl
-               << indent() << "fb.close();" << endl
-               << indent() << "return;" << endl;
-    indent_down();
-    indent(f_service_) << "} else if (e instanceof org.apache.thrift.TApplicationException) {"
-                       << endl;
-    indent_up();
-    f_service_ << indent() << "_LOGGER.error(\"TApplicationException inside handler\", e);" << endl
-               << indent() << "msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;" << endl
-               << indent() << "msg = (org.apache.thrift.TApplicationException)e;" << endl;
-    indent_down();
-    indent(f_service_) << "} else {" << endl;
-    indent_up();
-    f_service_ << indent() << "_LOGGER.error(\"Exception inside handler\", e);" << endl
-               << indent() << "msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;" << endl
-               << indent() << "msg = "
-                              "org.apache.thrift.TApplicationException(org.apache.thrift."
-                              "TApplicationException.INTERNAL_ERROR, e.getMessage());"
-               << endl;
-    indent_down();
-    f_service_ << indent() << "}" << endl
-               << indent() << "try {" << endl
-               << indent() << "  fcall.sendResponse(fb,msg,msgType,seqid);" << endl
-               << indent() << "} catch (kotlin.lang.Exception ex) {" << endl
-               << indent() << "  _LOGGER.error(\"Exception writing to internal frame buffer\", ex);"
-               << endl
-               << indent() << "  fb.close();" << endl
-               << indent() << "}" << endl;
-  }
-  indent_down();
-  indent(f_service_) << "}" << endl;
-  indent_down();
-  indent(f_service_) << "};" << endl;
-  indent_down();
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "protected boolean isOneway() {" << endl;
-  indent(f_service_) << "  return " << ((tfunction->is_oneway()) ? "true" : "false") << ";" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "public void start(I iface, " << argsname
-                     << " args, org.apache.thrift.async.AsyncMethodCallback<" << resulttype
-                     << "> resultHandler) throws org.apache.thrift.TException {" << endl;
-  indent_up();
-
-  // Generate the function call
-  t_struct *arg_struct = tfunction->get_arglist();
-  const std::vector<t_field *> &fields = arg_struct->get_members();
-  vector<t_field *>::const_iterator f_iter;
-  f_service_ << indent();
-
-  f_service_ << "iface." << get_rpc_method_name(tfunction->get_name()) << "(";
-  bool first = true;
-  for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
-    if (first) {
-      first = false;
-    } else {
-      f_service_ << ", ";
-    }
-    f_service_ << "args." << (*f_iter)->get_name();
-  }
-  if (!first)
-    f_service_ << ",";
-  f_service_ << "resultHandler";
-  f_service_ << ");" << endl;
-
-  indent_down();
-  indent(f_service_) << "}";
-
-  // Close function
-  f_service_ << endl;
-
-  // Close class
-  indent_down();
-  f_service_ << indent() << "}" << endl << endl;
-}
-
-/**
- * Generates a process function definition.
- *
- * @param tfunction The function to write a dispatcher for
- */
-void t_kotlin_generator::generate_process_function(t_service *tservice, t_function *tfunction) {
+void t_kotlin_generator::generate_process_function(t_service *tservice, t_function *tfunction, bool async) {
   string argsname = tfunction->get_name() + "_args";
   string resultname = tfunction->get_name() + "_result";
+  string iface = async ? "AsyncIface" : "Iface";
+  string processorBase = async ? "AsyncProcessFunction" : "ProcessFunction";
+  string suspend = async ? "suspend " : "";
   if (tfunction->is_oneway()) {
-    resultname = "org.apache.thrift.TBase";
+    resultname = "org.apache.thrift.TBase<*, *>?";
   }
 
   (void) tservice;
   // Companion class
   indent(f_service_) << "class " << tfunction->get_name()
-                     << ": org.apache.thrift.ProcessFunction<Iface, "
+                     << ": org.apache.thrift." << processorBase << "<" << iface << ", "
                      << argsname << ">(\"" << tfunction->get_name() << "\") {" << endl;
   indent_up();
 
@@ -3556,7 +3353,7 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
   indent(f_service_) << "}" << endl << endl;
 
   indent(f_service_) << "@Throws(org.apache.thrift.TException::class)" << endl;
-  indent(f_service_) << "override fun getResult(iface: Iface, args:" << argsname
+  indent(f_service_) << "override " << suspend << "fun getResult(iface: " << iface << ", args:" << argsname
                      << "): " << resultname << " {" << endl;
   indent_up();
   if (!tfunction->is_oneway()) {
@@ -3590,7 +3387,14 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
     } else {
       f_service_ << ", ";
     }
-    f_service_ << "args.get" << capitalize((*f_iter)->get_name()) << "()";
+    t_type* type = (*f_iter)->get_type();
+    if ((*f_iter)->get_type()->get_true_type()->is_binary()) {
+      f_service_ << "java.nio.ByteBuffer.wrap(";
+    }
+    f_service_ << "args." << ((*f_iter)->get_type()->is_bool() ? "is" : "get") << capitalize((*f_iter)->get_name()) << "()";
+    if ((*f_iter)->get_type()->get_true_type()->is_binary()) {
+      f_service_ << ")";
+    }
   }
   if (!tfunction->is_oneway() && !tfunction->get_returntype()->is_void()) {
     f_service_ << ")";
@@ -3636,7 +3440,7 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
 
   // Close class
   indent_down();
-  f_service_ << indent() << "}" << endl << endl;
+  f_service_ << indent() << "}" << endl;
 }
 
 /**
@@ -4301,8 +4105,13 @@ string t_kotlin_generator::argument_list(t_struct *tstruct, bool include_types) 
     }
     result += (*f_iter)->get_name();
     if (include_types) {
+      result += ":" + type_name((*f_iter)->get_type());
       // Arguments can be null. To be compatible with other languages we have to use ? in kotlin.
-      result += ":" + type_name((*f_iter)->get_type()) + "?";
+      // Strings are nullable.
+      t_type* ttype = (*f_iter)->get_type()->get_true_type();
+      if(!ttype->is_base_type() || ttype->is_string()) {
+        result += "?";
+      }
     }
   }
   return result;
