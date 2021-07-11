@@ -57,16 +57,17 @@ internal object TBase64Utils {
         src: ByteArray, srcOff: Int, len: Int, dst: ByteArray,
         dstOff: Int
     ) {
-        dst[dstOff] = ENCODE_TABLE[src[srcOff] shr 2 and 0x3F].toByte()
+        dst[dstOff] = ENCODE_TABLE[src[srcOff] shr 2 and 0x3F].code.toByte()
         if (len == 3) {
-            dst[dstOff + 1] = ENCODE_TABLE[src[srcOff] shl 4 and 0x30 or (src[srcOff + 1] shr 4 and 0x0F)].toByte()
-            dst[dstOff + 2] = ENCODE_TABLE[src[srcOff + 1] shl 2 and 0x3C or (src[srcOff + 2] shr 6 and 0x03)].toByte()
-            dst[dstOff + 3] = ENCODE_TABLE[src[srcOff + 2] and 0x3F].toByte()
+            dst[dstOff + 1] = ENCODE_TABLE[src[srcOff] shl 4 and 0x30 or (src[srcOff + 1] shr 4 and 0x0F)].code.toByte()
+            dst[dstOff + 2] =
+                ENCODE_TABLE[src[srcOff + 1] shl 2 and 0x3C or (src[srcOff + 2] shr 6 and 0x03)].code.toByte()
+            dst[dstOff + 3] = ENCODE_TABLE[src[srcOff + 2] and 0x3F].code.toByte()
         } else if (len == 2) {
-            dst[dstOff + 1] = ENCODE_TABLE[src[srcOff] shl 4 and 0x30 or (src[srcOff + 1] shr 4 and 0x0F)].toByte()
-            dst[dstOff + 2] = ENCODE_TABLE[src[srcOff + 1] shl 2 and 0x3C].toByte()
+            dst[dstOff + 1] = ENCODE_TABLE[src[srcOff] shl 4 and 0x30 or (src[srcOff + 1] shr 4 and 0x0F)].code.toByte()
+            dst[dstOff + 2] = ENCODE_TABLE[src[srcOff + 1] shl 2 and 0x3C].code.toByte()
         } else { // len == 1) {
-            dst[dstOff + 1] = ENCODE_TABLE[src[srcOff] shl 4 and 0x30].toByte()
+            dst[dstOff + 1] = ENCODE_TABLE[src[srcOff] shl 4 and 0x30].code.toByte()
         }
     }
 

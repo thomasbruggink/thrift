@@ -75,13 +75,13 @@ class TJSONProtocol(
 
     // Context for JSON lists. Will insert/read commas before each item except
     // for the first one
-    protected inner class JSONListContext : JSONBaseContext() {
-        private var first_ = true
+    private inner class JSONListContext : JSONBaseContext() {
+        private var first = true
 
         @Throws(TException::class)
         override suspend fun write() {
-            if (first_) {
-                first_ = false
+            if (first) {
+                first = false
             } else {
                 trans_.write(COMMA)
             }
@@ -89,8 +89,8 @@ class TJSONProtocol(
 
         @Throws(TException::class)
         override suspend fun read() {
-            if (first_) {
-                first_ = false
+            if (first) {
+                first = false
             } else {
                 readJSONSyntaxChar(COMMA)
             }
@@ -215,8 +215,8 @@ class TJSONProtocol(
         val ch = reader_.read()
         if (ch != b[0]) {
             throw TProtocolException(
-                    TProtocolException.INVALID_DATA,
-                    "Unexpected character:" + ch.toChar()
+                TProtocolException.INVALID_DATA,
+                "Unexpected character:" + ch.toInt().toChar()
             )
         }
     }
@@ -465,11 +465,11 @@ class TJSONProtocol(
     }
 
     @Throws(TException::class)
-    override suspend fun writeBinary(bin: ByteBuffer?) {
+    override suspend fun writeBinary(buf: ByteBuffer?) {
         writeJSONBase64(
-                bin!!.array(),
-                bin.position() + bin.arrayOffset(),
-                bin.limit() - bin.position() - bin.arrayOffset()
+                buf!!.array(),
+                buf.position() + buf.arrayOffset(),
+                buf.limit() - buf.position() - buf.arrayOffset()
         )
     }
 
@@ -500,25 +500,25 @@ class TJSONProtocol(
                             (hexVal(tmpbuf_[2]).toShort() shl 4) +
                             hexVal(tmpbuf_[3]).toShort()).toShort()
                     try {
-                        if (Character.isHighSurrogate(cu.toChar())) {
+                        if (Character.isHighSurrogate(cu.toInt().toChar())) {
                             if (codeunits.size > 0) {
                                 throw TProtocolException(
                                         TProtocolException.INVALID_DATA,
                                         "Expected low surrogate char"
                                 )
                             }
-                            codeunits.add(cu.toChar())
-                        } else if (Character.isLowSurrogate(cu.toChar())) {
+                            codeunits.add(cu.toInt().toChar())
+                        } else if (Character.isLowSurrogate(cu.toInt().toChar())) {
                             if (codeunits.size == 0) {
                                 throw TProtocolException(
                                         TProtocolException.INVALID_DATA,
                                         "Expected high surrogate char"
                                 )
                             }
-                            codeunits.add(cu.toChar())
+                            codeunits.add(cu.toInt().toChar())
                             arr.write(
                                     String(
-                                            intArrayOf(codeunits[0].toInt(), codeunits[1].toInt()),
+                                        intArrayOf(codeunits[0].code, codeunits[1].code),
                                             0, 2
                                     ).toByteArray(StandardCharsets.UTF_8)
                             )
@@ -537,7 +537,7 @@ class TJSONProtocol(
                         )
                     }
                 } else {
-                    val off = ESCAPE_CHARS.indexOf(ch.toChar())
+                    val off = ESCAPE_CHARS.indexOf(ch.toInt().toChar())
                     if (off == -1) {
                         throw TProtocolException(
                                 TProtocolException.INVALID_DATA,
@@ -554,7 +554,7 @@ class TJSONProtocol(
 
     // Return true if the given byte could be a valid part of a JSON number.
     private fun isJSONNumeric(b: Byte): Boolean {
-        when (b.toChar()) {
+        when (b.toInt().toChar()) {
             '+', '-', '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'E', 'e' -> return true
         }
         return false
@@ -570,7 +570,7 @@ class TJSONProtocol(
             if (!isJSONNumeric(ch)) {
                 break
             }
-            strbld.append(reader_.read().toChar())
+            strbld.append(reader_.read().toInt().toChar())
         }
         return strbld.toString()
     }
@@ -641,7 +641,7 @@ class TJSONProtocol(
         // Ignore padding
         val bound = if (len >= 2) len - 2 else 0
         var i = len - 1
-        while (i >= bound && b[i] == '='.toByte()) {
+        while (i >= bound && b[i] == '='.code.toByte()) {
             --len
             --i
         }
@@ -856,45 +856,90 @@ class TJSONProtocol(
     }
 
     companion object {
-        private val COMMA = byteArrayOf(','.toByte())
-        private val COLON = byteArrayOf(':'.toByte())
-        private val LBRACE = byteArrayOf('{'.toByte())
-        private val RBRACE = byteArrayOf('}'.toByte())
-        private val LBRACKET = byteArrayOf('['.toByte())
-        private val RBRACKET = byteArrayOf(']'.toByte())
-        private val QUOTE = byteArrayOf('"'.toByte())
-        private val BACKSLASH = byteArrayOf('\\'.toByte())
-        private val ZERO = byteArrayOf('0'.toByte())
-        private val ESCSEQ = byteArrayOf('\\'.toByte(), 'u'.toByte(), '0'.toByte(), '0'.toByte())
+        private val COMMA = byteArrayOf(','.code.toByte())
+        private val COLON = byteArrayOf(':'.code.toByte())
+        private val LBRACE = byteArrayOf('{'.code.toByte())
+        private val RBRACE = byteArrayOf('}'.code.toByte())
+        private val LBRACKET = byteArrayOf('['.code.toByte())
+        private val RBRACKET = byteArrayOf(']'.code.toByte())
+        private val QUOTE = byteArrayOf('"'.code.toByte())
+        private val BACKSLASH = byteArrayOf('\\'.code.toByte())
+        private val ZERO = byteArrayOf('0'.code.toByte())
+        private val ESCSEQ = byteArrayOf('\\'.code.toByte(), 'u'.code.toByte(), '0'.code.toByte(), '0'.code.toByte())
         private const val VERSION: Long = 1
         private val JSON_CHAR_TABLE = byteArrayOf( /*  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F */
-                0, 0, 0, 0, 0, 0, 0, 0, 'b'.toByte(), 't'.toByte(), 'n'.toByte(), 0, 'f'.toByte(), 'r'.toByte(), 0, 0,  // 0
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 1
-                1, 1, '"'.toByte(), 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            'b'.code.toByte(),
+            't'.code.toByte(),
+            'n'.code.toByte(),
+            0,
+            'f'.code.toByte(),
+            'r'.code.toByte(),
+            0,
+            0,  // 0
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,  // 1
+            1,
+            1,
+            '"'.code.toByte(),
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
         )
         private const val ESCAPE_CHARS = "\"\\/bfnrt"
         private val ESCAPE_CHAR_VALS = byteArrayOf(
-                '"'.toByte(),
-                '\\'.toByte(),
-                '/'.toByte(),
-                '\b'.toByte(),
-                0x0C.toByte(), // form feed
-                '\n'.toByte(),
-                '\r'.toByte(),
-                '\t'.toByte()
+            '"'.code.toByte(),
+            '\\'.code.toByte(),
+            '/'.code.toByte(),
+            '\b'.code.toByte(),
+            0x0C.toByte(), // form feed
+            '\n'.code.toByte(),
+            '\r'.code.toByte(),
+            '\t'.code.toByte()
         )
         private const val DEF_STRING_SIZE = 16
-        private val NAME_BOOL = byteArrayOf('t'.toByte(), 'f'.toByte())
-        private val NAME_BYTE = byteArrayOf('i'.toByte(), '8'.toByte())
-        private val NAME_I16 = byteArrayOf('i'.toByte(), '1'.toByte(), '6'.toByte())
-        private val NAME_I32 = byteArrayOf('i'.toByte(), '3'.toByte(), '2'.toByte())
-        private val NAME_I64 = byteArrayOf('i'.toByte(), '6'.toByte(), '4'.toByte())
-        private val NAME_DOUBLE = byteArrayOf('d'.toByte(), 'b'.toByte(), 'l'.toByte())
-        private val NAME_STRUCT = byteArrayOf('r'.toByte(), 'e'.toByte(), 'c'.toByte())
-        private val NAME_STRING = byteArrayOf('s'.toByte(), 't'.toByte(), 'r'.toByte())
-        private val NAME_MAP = byteArrayOf('m'.toByte(), 'a'.toByte(), 'p'.toByte())
-        private val NAME_LIST = byteArrayOf('l'.toByte(), 's'.toByte(), 't'.toByte())
-        private val NAME_SET = byteArrayOf('s'.toByte(), 'e'.toByte(), 't'.toByte())
+        private val NAME_BOOL = byteArrayOf('t'.code.toByte(), 'f'.code.toByte())
+        private val NAME_BYTE = byteArrayOf('i'.code.toByte(), '8'.code.toByte())
+        private val NAME_I16 = byteArrayOf('i'.code.toByte(), '1'.code.toByte(), '6'.code.toByte())
+        private val NAME_I32 = byteArrayOf('i'.code.toByte(), '3'.code.toByte(), '2'.code.toByte())
+        private val NAME_I64 = byteArrayOf('i'.code.toByte(), '6'.code.toByte(), '4'.code.toByte())
+        private val NAME_DOUBLE = byteArrayOf('d'.code.toByte(), 'b'.code.toByte(), 'l'.code.toByte())
+        private val NAME_STRUCT = byteArrayOf('r'.code.toByte(), 'e'.code.toByte(), 'c'.code.toByte())
+        private val NAME_STRING = byteArrayOf('s'.code.toByte(), 't'.code.toByte(), 'r'.code.toByte())
+        private val NAME_MAP = byteArrayOf('m'.code.toByte(), 'a'.code.toByte(), 'p'.code.toByte())
+        private val NAME_LIST = byteArrayOf('l'.code.toByte(), 's'.code.toByte(), 't'.code.toByte())
+        private val NAME_SET = byteArrayOf('s'.code.toByte(), 'e'.code.toByte(), 't'.code.toByte())
         private val ANONYMOUS_STRUCT = TStruct()
 
         @Throws(TException::class)
@@ -922,9 +967,9 @@ class TJSONProtocol(
         private fun getTypeIDForTypeName(name: ByteArray): Byte {
             var result = TType.STOP
             if (name.size > 1) {
-                when (name[0].toChar()) {
+                when (name[0].toInt().toChar()) {
                     'd' -> result = TType.DOUBLE
-                    'i' -> when (name[1].toChar()) {
+                    'i' -> when (name[1].toInt().toChar()) {
                         '8' -> result = TType.BYTE
                         '1' -> result = TType.I16
                         '3' -> result = TType.I32
@@ -933,9 +978,9 @@ class TJSONProtocol(
                     'l' -> result = TType.LIST
                     'm' -> result = TType.MAP
                     'r' -> result = TType.STRUCT
-                    's' -> if (name[1] == 't'.toByte()) {
+                    's' -> if (name[1] == 't'.code.toByte()) {
                         result = TType.STRING
-                    } else if (name[1] == 'e'.toByte()) {
+                    } else if (name[1] == 'e'.code.toByte()) {
                         result = TType.SET
                     }
                     't' -> result = TType.BOOL
@@ -954,10 +999,10 @@ class TJSONProtocol(
         // corresponding hex value
         @Throws(TException::class)
         private fun hexVal(ch: Byte): Byte {
-            return if (ch >= '0'.toByte() && ch <= '9'.toByte()) {
-                (ch.toChar() - '0').toByte()
-            } else if (ch >= 'a'.toByte() && ch <= 'f'.toByte()) {
-                (ch.toChar() - 'a' + 10).toByte()
+            return if (ch >= '0'.code.toByte() && ch <= '9'.code.toByte()) {
+                (ch.toInt().toChar() - '0').toByte()
+            } else if (ch >= 'a'.code.toByte() && ch <= 'f'.code.toByte()) {
+                (ch.toInt().toChar() - 'a' + 10).toByte()
             } else {
                 throw TProtocolException(
                         TProtocolException.INVALID_DATA,
@@ -971,9 +1016,9 @@ class TJSONProtocol(
             var char = hex
             char = char and 0x0F
             return if (char < 10) {
-                (char.toChar() + '0').toByte()
+                (char.toInt().toChar() + '0').code.toByte()
             } else {
-                ((char - 10).toChar().plus('a')).toByte()
+                ((char - 10).toChar().plus('a')).code.toByte()
             }
         }
     }
