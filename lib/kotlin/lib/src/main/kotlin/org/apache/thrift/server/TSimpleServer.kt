@@ -86,7 +86,7 @@ class TSimpleServer(args: AbstractServerArgs<*>) : TServer(args) {
         serverTransport_.interrupt()
     }
 
-    companion object {
+    private companion object {
         private val LOGGER = LoggerFactory.getLogger(TSimpleServer::class.java.name)
     }
 }

@@ -35,22 +35,18 @@ class TServerSocket(args: ServerSocketTransportArgs) :
     /**
      * Underlying ServerSocket object
      */
-    var serverSocket: AsynchronousServerSocketChannel
-        private set
+    private var serverSocket: AsynchronousServerSocketChannel
 
     /**
      * Timeout for client sockets from accept
      */
-    private var clientTimeout_ = 0
+    private var clientTimeout = 0
 
     class ServerSocketTransportArgs(
         val serverSocket: AsynchronousServerSocketChannel
     ) : AbstractServerTransportArgs<ServerSocketTransportArgs>() {
     }
 
-    /**
-     * Creates a server socket from underlying socket object
-     */
     /**
      * Creates a server socket from underlying socket object
      */
@@ -61,14 +57,11 @@ class TServerSocket(args: ServerSocketTransportArgs) :
     /**
      * Creates just a port listening server socket
      */
-    /**
-     * Creates just a port listening server socket
-     */
     constructor(port: Int, clientTimeout: Int = 0) : this(InetSocketAddress(port), clientTimeout)
 
-    constructor(bindAddr: InetSocketAddress, clientTimeout: Int = 0) : this(
+    constructor(inetSocketAddress: InetSocketAddress, clientTimeout: Int = 0) : this(
         ServerSocketTransportArgs(AsynchronousServerSocketChannel.open()).bindAddr(
-            bindAddr
+            inetSocketAddress
         ).clientTimeout(clientTimeout)
     )
 
@@ -87,7 +80,7 @@ class TServerSocket(args: ServerSocketTransportArgs) :
             throw TTransportException(e)
         } ?: throw TTransportException("Blocking server's accept() may not return NULL")
         val socket = TSocket(result)
-        socket.timeout = clientTimeout_
+        socket.timeout = clientTimeout
         return socket
     }
 
@@ -110,7 +103,7 @@ class TServerSocket(args: ServerSocketTransportArgs) :
     }
 
     init {
-        clientTimeout_ = args.clientTimeout
+        clientTimeout = args.clientTimeout
         serverSocket = args.serverSocket
         try {
             // Make server socket
