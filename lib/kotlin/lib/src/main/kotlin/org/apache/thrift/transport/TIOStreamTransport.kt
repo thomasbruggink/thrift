@@ -40,7 +40,7 @@ open class TIOStreamTransport : TEndpointTransport {
     protected var stream: AsynchronousByteChannel? = null
 
     /** Read/write timeout of the channel **/
-    protected var timeout: Int = 0
+    var timeout: Int = 0
 
     /**
      * Subclasses can invoke the default constructor and then assign the input
@@ -91,12 +91,10 @@ open class TIOStreamTransport : TEndpointTransport {
      * Closes both the input and output streams.
      */
     override suspend fun close() = withContext(Dispatchers.IO) {
-        if (stream == null) {
-            throw TTransportException(TTransportException.NOT_OPEN, "Cannot read from null inputStream")
-        }
         try {
             try {
-                stream!!.close()
+                stream?.close()
+                return@withContext
             } catch (iox: IOException) {
                 LOGGER.warn("Error closing input stream.", iox)
             }

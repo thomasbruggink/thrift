@@ -74,7 +74,6 @@ class TSocket : TIOStreamTransport {
     constructor(socket: AsynchronousSocketChannel) : super(TConfiguration()) {
         this.socket = socket
         try {
-            this.socket.setOption(StandardSocketOptions.SO_LINGER, 0)
             this.socket.setOption(StandardSocketOptions.TCP_NODELAY, true)
             this.socket.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
         } catch (sx: SocketException) {
@@ -158,7 +157,6 @@ class TSocket : TIOStreamTransport {
     private fun initSocket() {
         socket = AsynchronousSocketChannel.open()
         try {
-//            this.socket.setOption(StandardSocketOptions.SO_LINGER, 0)
             this.socket.setOption(StandardSocketOptions.TCP_NODELAY, true)
             this.socket.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
         } catch (sx: SocketException) {
