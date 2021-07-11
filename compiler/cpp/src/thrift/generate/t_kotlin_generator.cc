@@ -2779,8 +2779,8 @@ void t_kotlin_generator::generate_service(t_service *tservice) {
   generate_service_async_interface(tservice);
   generate_service_client(tservice);
   generate_service_async_client(tservice);
-  /*generate_service_server(tservice);
-  generate_service_async_server(tservice);*/
+  generate_service_server(tservice);
+  // generate_service_async_server(tservice);
   generate_service_helpers(tservice);
 
   indent_down();
@@ -3187,43 +3187,37 @@ void t_kotlin_generator::generate_service_server(t_service *tservice) {
   string extends = "";
   string extends_processor = "";
   if (tservice->get_extends() == nullptr) {
-    extends_processor = "org.apache.thrift.TBaseProcessor<I>";
+    extends_processor = "org.apache.thrift.TBaseProcessor<Iface>(iface, processMap)";
   } else {
     extends = type_name(tservice->get_extends());
     extends_processor = extends + ".Processor<I>";
   }
 
   // Generate the header portion
-  indent(f_service_) << "class Processor<I extends Iface> extends "
-                     << extends_processor << " : org.apache.thrift.TProcessor {" << endl;
+  indent(f_service_) << "class Processor(" << endl;
+  indent_up();
+  indent(f_service_) << "iface:Iface," << endl;
+  indent(f_service_) << "processMap:Map<String, org.apache.thrift.ProcessFunction<Iface, out org.apache.thrift.TBase<*, *>>>" << endl;
+  indent_down();
+  indent(f_service_) << "): " << extends_processor << ", org.apache.thrift.TProcessor {" << endl;
   indent_up();
 
-  indent(f_service_)
-          << "private static final org.slf4j.Logger _LOGGER = org.slf4j.LoggerFactory.getLogger(Processor.class.getName());"
-          << endl;
+  indent(f_service_) << "constructor(iface:Iface): this(iface, getProcessMap(mutableMapOf<String, "
+                     << "org.apache.thrift.ProcessFunction<Iface, out org.apache.thrift.TBase<*, *>>>()))"
+                     << endl << endl;
 
-  indent(f_service_) << "public Processor(I iface) {" << endl;
-  indent(f_service_) << "  super(iface, getProcessMap(java.util.HashMap<kotlin.lang.String, "
-                        "org.apache.thrift.ProcessFunction<I, ? extends "
-                        "org.apache.thrift.TBase>>()));" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "protected Processor(I iface, kotlin.util.Map<kotlin.lang.String, "
-                        "org.apache.thrift.ProcessFunction<I, ? extends org.apache.thrift.TBase>> "
-                        "processMap) {" << endl;
-  indent(f_service_) << "  super(iface, getProcessMap(processMap));" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "private static <I extends Iface> kotlin.util.Map<kotlin.lang.String,  "
-                        "org.apache.thrift.ProcessFunction<I, ? extends org.apache.thrift.TBase>> "
-                        "getProcessMap(kotlin.util.Map<kotlin.lang.String, org.apache.thrift.ProcessFunction<I, ? extends "
-                        " org.apache.thrift.TBase>> processMap) {" << endl;
+  indent(f_service_) << "companion object {" << endl;
+  indent_up();
+  indent(f_service_) << "fun getProcessMap(processMap: MutableMap<String, "
+                        "org.apache.thrift.ProcessFunction<Iface, out org.apache.thrift.TBase<*, *>>>): "
+                        "Map<String, org.apache.thrift.ProcessFunction<Iface, "
+                        "out org.apache.thrift.TBase<*, *>>> {" << endl;
   indent_up();
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
-    indent(f_service_) << "processMap.put(\"" << (*f_iter)->get_name() << "\", "
-                       << (*f_iter)->get_name() << "());" << endl;
+    indent(f_service_) << "processMap[\"" << (*f_iter)->get_name() << "\"] = "
+                       << (*f_iter)->get_name() << "()" << endl;
   }
-  indent(f_service_) << "return processMap;" << endl;
+  indent(f_service_) << "return processMap.toMap()" << endl;
   indent_down();
   indent(f_service_) << "}" << endl << endl;
 
@@ -3232,6 +3226,8 @@ void t_kotlin_generator::generate_service_server(t_service *tservice) {
     generate_process_function(tservice, *f_iter);
   }
 
+  indent_down();
+  indent(f_service_) << "}" << endl;
   indent_down();
   indent(f_service_) << "}" << endl << endl;
 }
@@ -3538,34 +3534,33 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
   }
 
   (void) tservice;
-  // Open class
+  // Companion class
   indent(f_service_) << "class " << tfunction->get_name()
-                     << "<I extends Iface> extends org.apache.thrift.ProcessFunction<I, "
-                     << argsname << "> {" << endl;
+                     << ": org.apache.thrift.ProcessFunction<Iface, "
+                     << argsname << ">(\"" << tfunction->get_name() << "\") {" << endl;
   indent_up();
 
-  indent(f_service_) << "public " << tfunction->get_name() << "() {" << endl;
-  indent(f_service_) << "  super(\"" << tfunction->get_name() << "\");" << endl;
+  indent(f_service_) << "override val emptyArgsInstance: " << argsname << endl;
+  indent_up();
+  indent(f_service_) << "get() = " << argsname << "()" << endl;
+  indent_down();
+
+
+  indent(f_service_) << "override val isOneway: Boolean" << endl;
+  indent_up();
+  indent(f_service_) << "get() = " << ((tfunction->is_oneway()) ? "true" : "false") << endl;
+  indent_down();
+
+  indent(f_service_) << "override fun rethrowUnhandledExceptions(): Boolean {" << endl;
+  indent(f_service_) << "  return true" << endl;
   indent(f_service_) << "}" << endl << endl;
 
-  indent(f_service_) << "public " << argsname << " getEmptyArgsInstance() {" << endl;
-  indent(f_service_) << "  return " << argsname << "();" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "protected boolean isOneway() {" << endl;
-  indent(f_service_) << "  return " << ((tfunction->is_oneway()) ? "true" : "false") << ";" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "@Override" << endl;
-  indent(f_service_) << "protected boolean rethrowUnhandledExceptions() {" << endl;
-  indent(f_service_) << "  return true;" << endl;
-  indent(f_service_) << "}" << endl << endl;
-
-  indent(f_service_) << "public " << resultname << " getResult(I iface, " << argsname
-                     << " args) throws org.apache.thrift.TException {" << endl;
+  indent(f_service_) << "@Throws(org.apache.thrift.TException::class)" << endl;
+  indent(f_service_) << "override fun getResult(iface: Iface, args:" << argsname
+                     << "): " << resultname << " {" << endl;
   indent_up();
   if (!tfunction->is_oneway()) {
-    indent(f_service_) << resultname << " result = " << resultname << "();" << endl;
+    indent(f_service_) << "val result: " << resultname << " = " << resultname << "()" << endl;
   }
 
   t_struct *xs = tfunction->get_xceptions();
@@ -3585,7 +3580,7 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
   f_service_ << indent();
 
   if (!tfunction->is_oneway() && !tfunction->get_returntype()->is_void()) {
-    f_service_ << "result.success = ";
+    f_service_ << "result.setSuccess(";
   }
   f_service_ << "iface." << get_rpc_method_name(tfunction->get_name()) << "(";
   bool first = true;
@@ -3595,7 +3590,10 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
     } else {
       f_service_ << ", ";
     }
-    f_service_ << "args." << (*f_iter)->get_name();
+    f_service_ << "args.get" << capitalize((*f_iter)->get_name()) << "()";
+  }
+  if (!tfunction->is_oneway() && !tfunction->get_returntype()->is_void()) {
+    f_service_ << ")";
   }
   f_service_ << ")" << endl;
 
@@ -3610,12 +3608,12 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
     indent_down();
     f_service_ << indent() << "}";
     for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
-      f_service_ << " catch (" << type_name((*x_iter)->get_type(), false, false) << " "
-                 << (*x_iter)->get_name() << ") {" << endl;
+      f_service_ << " catch (" << (*x_iter)->get_name() << ": "
+                 << type_name((*x_iter)->get_type(), false, false) << ") {" << endl;
       if (!tfunction->is_oneway()) {
         indent_up();
-        f_service_ << indent() << "result." << (*x_iter)->get_name() << " = "
-                   << (*x_iter)->get_name() << endl;
+        f_service_ << indent() << "result.set" << capitalize((*x_iter)->get_name()) << "("
+                   << (*x_iter)->get_name() << ")" << endl;
         indent_down();
         f_service_ << indent() << "}";
       } else {
@@ -3628,7 +3626,7 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
   if (tfunction->is_oneway()) {
     indent(f_service_) << "return null" << endl;
   } else {
-    indent(f_service_) << "return resul;" << endl;
+    indent(f_service_) << "return result" << endl;
   }
   indent_down();
   indent(f_service_) << "}";
@@ -4303,7 +4301,8 @@ string t_kotlin_generator::argument_list(t_struct *tstruct, bool include_types) 
     }
     result += (*f_iter)->get_name();
     if (include_types) {
-      result += ":" + type_name((*f_iter)->get_type());
+      // Arguments can be null. To be compatible with other languages we have to use ? in kotlin.
+      result += ":" + type_name((*f_iter)->get_type()) + "?";
     }
   }
   return result;
