@@ -3,16 +3,17 @@ package com.testing
 import com.testing.api.MyTestService
 import com.testing.api.testOneRequest
 import com.testing.api.testOneResponse
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
 import org.apache.thrift.TProcessorFactory
 import org.apache.thrift.protocol.TBinaryProtocol
+import org.apache.thrift.server.TDispatcherServer
 import org.apache.thrift.server.TServer
 import org.apache.thrift.server.TSimpleServer
 import org.apache.thrift.transport.TServerSocket
 import org.apache.thrift.transport.TSocket
 import org.apache.thrift.transport.layered.TFramedTransport
+import java.util.concurrent.Executors
 
 suspend fun client() {
     println("Building transport")
@@ -41,9 +42,9 @@ class MyTestServiceHandler : MyTestService.Iface {
 }
 
 class MyTestServiceAsyncHandler : MyTestService.AsyncIface {
-    override suspend fun testMethod(req: testOneRequest?): testOneResponse = withContext(Dispatchers.IO) {
-        println("Received request from: ${req?.getName()}")
-        return@withContext testOneResponse("Hi: ${req?.getName()}")
+    override suspend fun testMethod(req: testOneRequest?): testOneResponse {
+        println("Received request from: ${req?.getName()} on ${Thread.currentThread().name}")
+        return testOneResponse("Hi: ${req?.getName()}")
     }
 }
 
@@ -69,7 +70,14 @@ suspend fun asyncServer() {
     println("Building server socket")
     val socket = TServerSocket(9090)
     println("Building server")
-    val server = TSimpleServer(TServer.Args(socket, TProcessorFactory(processor)))
+    var i = 0
+    val executor = Executors.newFixedThreadPool(50) {
+        val thread = Thread(it)
+        thread.name = "thread-$i"
+        i++
+        thread
+    }
+    val server = TDispatcherServer(TServer.Args(socket, TProcessorFactory(processor)), executor.asCoroutineDispatcher())
     println("Serving")
     server.serve()
     println("Stopped")
