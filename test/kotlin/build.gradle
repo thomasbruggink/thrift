@@ -1,0 +1,12 @@
+allprojects {
+    repositories {
+        maven {
+            name 'Maven Central Repository'
+            url property('mvn.repo')
+        }
+        maven {
+            name 'Apache Maven Repository'
+            url property('apache.repo')
+        }
+    }
+}

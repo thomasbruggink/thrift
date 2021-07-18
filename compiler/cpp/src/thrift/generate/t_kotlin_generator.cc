@@ -334,7 +334,6 @@ public:
 
     std::string type_name(t_type *ttype,
                           bool in_container = false,
-                          bool in_init = false,
                           bool skip_generic = false,
                           bool force_namespace = false,
                           bool generic_generic = false);
@@ -643,7 +642,7 @@ void t_kotlin_generator::print_const_value(std::ostream &out,
     vector<t_field *>::const_iterator f_iter;
     const map<t_const_value *, t_const_value *, t_const_value::value_compare> &val = value->get_map();
     map<t_const_value *, t_const_value *, t_const_value::value_compare>::const_iterator v_iter;
-    out << " = " << type_name(type, false, true) << "()" << endl;
+    out << " = " << type_name(type, false) << "()" << endl;
     if (!in_static) {
       indent(out) << "init {" << endl;
       indent_up();
@@ -673,7 +672,7 @@ void t_kotlin_generator::print_const_value(std::ostream &out,
     if (is_enum_map(type)) {
       constructor_args = inner_enum_type_name(type);
     }
-    out << " = " << type_name(type, false, true) << "(" << constructor_args << ")" << endl;
+    out << " = " << type_name(type, false) << "(" << constructor_args << ")" << endl;
     if (!in_static) {
       indent(out) << "init {" << endl;
       indent_up();
@@ -694,10 +693,10 @@ void t_kotlin_generator::print_const_value(std::ostream &out,
     out << endl;
   } else if (type->is_list() || type->is_set()) {
     if (is_enum_set(type)) {
-      out << " = " << type_name(type, false, true, true) << ".noneOf(" << inner_enum_type_name(type) << ")"
+      out << " = " << type_name(type, false, true) << ".noneOf(" << inner_enum_type_name(type) << ")"
           << endl;
     } else {
-      out << " = " << type_name(type, false, true) << "()" << endl;
+      out << " = " << type_name(type, false) << "()" << endl;
     }
     if (!in_static) {
       indent(out) << "init {" << endl;
@@ -1160,10 +1159,10 @@ void t_kotlin_generator::generate_check_type(ostream &out, t_struct *tstruct) {
     t_field *field = (*m_iter);
 
     indent(out) << "Fields." << constant_name(field->get_name()) << " -> {" << endl;
-    indent(out) << "  if (value !is " << type_name(field->get_type(), true, false, true, false, true)
+    indent(out) << "  if (value !is " << type_name(field->get_type(), true, true, false, true)
                 << ") {" << endl;
     indent(out) << "    throw java.lang.ClassCastException(\"Was expecting value of type "
-                << type_name(field->get_type(), true, false) << " for field '" << field->get_name()
+                << type_name(field->get_type(), true) << " for field '" << field->get_name()
                 << "', but got ${value?.javaClass?.simpleName}\")" << endl;
     indent(out) << "  }" << endl;
     indent(out) << "}" << endl;
@@ -1205,7 +1204,7 @@ void t_kotlin_generator::generate_standard_scheme_read_value(ostream &out, t_str
     indent(out) << "if (field.type == " << constant_name(field->get_name()) << "_FIELD_DESC.type) {"
                 << endl;
     indent_up();
-    indent(out) << "var " << field->get_name() << ": "<< type_name(field->get_type(), true, false);
+    indent(out) << "var " << field->get_name() << ": "<< type_name(field->get_type(), true);
     if(ttype->is_enum()) {
       out << "?";
     }
@@ -1257,8 +1256,8 @@ void t_kotlin_generator::generate_standard_scheme_write_value(ostream &out, t_st
 
     indent(out) << "Fields." << constant_name(field->get_name()) << " -> {" << endl;
     indent_up();
-    indent(out) << "val " << field->get_name() << ": " << type_name(field->get_type(), true, false) << " = "
-                << "uFieldValue as " << type_name(field->get_type(), true, false) << endl;
+    indent(out) << "val " << field->get_name() << ": " << type_name(field->get_type(), true) << " = "
+                << "uFieldValue as " << type_name(field->get_type(), true) << endl;
     generate_serialize_field(out, field, "");
     indent(out) << "return" << endl;
     indent_down();
@@ -1297,7 +1296,7 @@ void t_kotlin_generator::generate_tuple_scheme_read_value(ostream &out, t_struct
 
     indent(out) << "Fields." << constant_name(field->get_name()) << " -> {" << endl;
     indent_up();
-    indent(out) << "val " << field->get_name() << ":" << type_name(field->get_type(), true, false);
+    indent(out) << "val " << field->get_name() << ":" << type_name(field->get_type(), true);
     if(ttype->is_enum()) {
       out << "?";
     }
@@ -1342,8 +1341,8 @@ void t_kotlin_generator::generate_tuple_scheme_write_value(ostream &out, t_struc
 
     indent(out) << "Fields." << constant_name(field->get_name()) << " -> {" << endl;
     indent_up();
-    indent(out) << "val " << field->get_name() << ":" + type_name(field->get_type(), true, false) << " = "
-                << "uFieldValue as " << type_name(field->get_type(), true, false) << endl;
+    indent(out) << "val " << field->get_name() << ":" + type_name(field->get_type(), true) << " = "
+                << "uFieldValue as " << type_name(field->get_type(), true) << endl;
     generate_serialize_field(out, field, "");
     indent(out) << "return" << endl;
     scope_down(out);
@@ -1460,7 +1459,6 @@ void t_kotlin_generator::generate_kotlin_struct_definition(ostream &out,
   generate_java_doc(out, tstruct);
   ostringstream companion_out;
 
-  bool is_const = (tstruct->annotations_.find("const") != tstruct->annotations_.end());
   bool is_deprecated = this->is_deprecated(tstruct->annotations_);
 
   if (!in_class) {
@@ -1779,7 +1777,7 @@ void t_kotlin_generator::generate_kotlin_struct_parcelable(ostream &out, t_struc
       indent(out) << prefix << " = " << type_name(t) << ".findByValue(in.readInt());" << endl;
     } else if (t->is_list()) {
       t_list *list = (t_list *) t;
-      indent(out) << prefix << " = " << type_name(t, false, true) << "();" << endl;
+      indent(out) << prefix << " = " << type_name(t, false) << "();" << endl;
       if (list->get_elem_type()->get_true_type()->is_struct()) {
         indent(out) << "in.readTypedList(" << prefix << ", " << type_name(list->get_elem_type())
                     << ".CREATOR);" << endl;
@@ -1788,7 +1786,7 @@ void t_kotlin_generator::generate_kotlin_struct_parcelable(ostream &out, t_struc
                     << endl;
       }
     } else if (t->is_map()) {
-      indent(out) << prefix << " = " << type_name(t, false, true) << "();" << endl;
+      indent(out) << prefix << " = " << type_name(t, false) << "();" << endl;
       indent(out) << " in.readMap(" << prefix << ", " << tname << ".class.getClassLoader());"
                   << endl;
     } else if (type_name(t) == "float") {
@@ -2144,7 +2142,7 @@ void t_kotlin_generator::generate_reflection_setters(ostringstream &out,
     indent(out) << "  set" << cap_name << "(value)" << endl;
     indent(out) << "} else {" << endl;
   }
-  indent(out) << "  set" << cap_name << "(value as " << type_name(type, true, false) << ")" << endl;
+  indent(out) << "  set" << cap_name << "(value as " << type_name(type, true) << ")" << endl;
   if (is_binary) {
     indent(out) << "}" << endl;
     indent_down();
@@ -2297,7 +2295,7 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
           indent(out) << "@Deprecated" << endl;
         }
         indent(out) << "fun get" << cap_name << get_cap_name("iterator():")
-                    << "org.apache.thrift.Option<Iterator<" << type_name(element_type, true, false) << ">> {" << endl;
+                    << "org.apache.thrift.Option<Iterator<" << type_name(element_type, true) << ">> {" << endl;
 
         indent_up();
         indent(out) << "if (this." << field_name << " == null) {" << endl;
@@ -2316,7 +2314,7 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
           indent(out) << "@Deprecated" << endl;
         }
         indent(out) << "fun get" << cap_name << "Iterator():Iterator<"
-                    << type_name(element_type, true, false) << ">? {" << endl;
+                    << type_name(element_type, true) << ">? {" << endl;
 
         indent_up();
         indent(out) << "return this." << field_name << "?.iterator()" << endl;
@@ -2335,9 +2333,9 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
       indent_up();
       indent(out) << "this." << field_name;
       if (is_enum_set(type)) {
-        out << " = " << type_name(type, false, true, true) << ".noneOf(" << inner_enum_type_name(type) << ")" << endl;
+        out << " = " << type_name(type, false, true) << ".noneOf(" << inner_enum_type_name(type) << ")" << endl;
       } else {
-        out << " = " << type_name(type, false, true) << "()" << endl;
+        out << " = " << type_name(type, false) << "()" << endl;
       }
       indent_down();
       indent(out) << "}" << endl;
@@ -2362,7 +2360,7 @@ void t_kotlin_generator::generate_kotlin_bean_boilerplate(ostream &out, t_struct
       if (is_enum_map(type)) {
         constructor_args = inner_enum_type_name(type);
       }
-      indent(out) << "this." << field_name << " = " << type_name(type, false, true) << "(" << constructor_args
+      indent(out) << "this." << field_name << " = " << type_name(type, false) << "(" << constructor_args
                   << ")"
                   << endl;
       indent_down();
@@ -3388,11 +3386,11 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
       f_service_ << ", ";
     }
     t_type* type = (*f_iter)->get_type();
-    if ((*f_iter)->get_type()->get_true_type()->is_binary()) {
+    if (type->get_true_type()->is_binary()) {
       f_service_ << "java.nio.ByteBuffer.wrap(";
     }
-    f_service_ << "args." << ((*f_iter)->get_type()->is_bool() ? "is" : "get") << capitalize((*f_iter)->get_name()) << "()";
-    if ((*f_iter)->get_type()->get_true_type()->is_binary()) {
+    f_service_ << "args." << (type->is_bool() ? "is" : "get") << capitalize((*f_iter)->get_name()) << "()";
+    if (type->get_true_type()->is_binary()) {
       f_service_ << ")";
     }
   }
@@ -3413,7 +3411,7 @@ void t_kotlin_generator::generate_process_function(t_service *tservice, t_functi
     f_service_ << indent() << "}";
     for (x_iter = xceptions.begin(); x_iter != xceptions.end(); ++x_iter) {
       f_service_ << " catch (" << (*x_iter)->get_name() << ": "
-                 << type_name((*x_iter)->get_type(), false, false) << ") {" << endl;
+                 << type_name((*x_iter)->get_type(), false) << ") {" << endl;
       if (!tfunction->is_oneway()) {
         indent_up();
         f_service_ << indent() << "result.set" << capitalize((*x_iter)->get_name()) << "("
@@ -3504,7 +3502,7 @@ void t_kotlin_generator::generate_deserialize_field(ostream &out,
     out << endl;
   } else if (type->is_enum()) {
     indent(out) << name << " = "
-                << type_name(tfield->get_type(), true, false, false, true)
+                << type_name(tfield->get_type(), true, false, true)
                    + ".findByValue(iprot.readI32())" << endl;
   } else {
     printf("DO NOT KNOW HOW TO DESERIALIZE FIELD '%s' TYPE '%s'\n",
@@ -3574,9 +3572,9 @@ void t_kotlin_generator::generate_deserialize_container(ostream &out,
   }
 
   if (is_enum_set(ttype)) {
-    out << indent() << prefix << " = " << type_name(ttype, false, true, true) << ".noneOf";
+    out << indent() << prefix << " = " << type_name(ttype, false, true) << ".noneOf";
   } else {
-    out << indent() << prefix << " = " << type_name(ttype, false, true);
+    out << indent() << prefix << " = " << type_name(ttype, false);
   }
 
   // construct the collection correctly i.e. with appropriate size/type
@@ -3846,8 +3844,8 @@ void t_kotlin_generator::generate_serialize_container(ostream &out,
   string iter = tmp("_iter");
   if (ttype->is_map()) {
     indent(out) << "for (" << iter << ":MutableMap.MutableEntry<"
-                << type_name(((t_map *) ttype)->get_key_type(), true, false)
-                << ", " << type_name(((t_map *) ttype)->get_val_type(), true, false) << "> in "
+                << type_name(((t_map *) ttype)->get_key_type(), true)
+                << ", " << type_name(((t_map *) ttype)->get_val_type(), true) << "> in "
                 << prefix << ".entries)";
   } else if (ttype->is_set()) {
     indent(out) << "for (" << iter << ":" << type_name(((t_set *) ttype)->get_elem_type()) << " in "
@@ -3925,7 +3923,6 @@ void t_kotlin_generator::generate_serialize_list_element(ostream &out,
  */
 string t_kotlin_generator::type_name(t_type *ttype,
                                      bool in_container,
-                                     bool in_init,
                                      bool skip_generic,
                                      bool force_namespace,
                                      bool generic_generic) {
@@ -4044,7 +4041,7 @@ string t_kotlin_generator::declare_field(t_field *tfield, bool comment, bool las
   } else if (ttype->is_enum() || is_enum_map(ttype) || is_enum_set(ttype)) {
     result += " = null";
   } else {
-    result += " = " + type_name(ttype, false, true) + "()";
+    result += " = " + type_name(ttype, false) + "()";
   }
   if (!last) {
     result += ",";
@@ -4287,8 +4284,8 @@ void t_kotlin_generator::generate_deep_copy_container(ostream &out,
   if (copy_construct_container) {
     // deep copy of base types can be done much more efficiently than iterating over all the
     // elements manually
-    indent(out) << "val " << result_name << ":" << type_name(type, true, false) << " = "
-                << type_name(container, false, true) << "(" << source_name << ")" << endl;
+    indent(out) << "val " << result_name << ":" << type_name(type, true) << " = "
+                << type_name(container, false) << "(" << source_name << ")" << endl;
     return;
   }
 
@@ -4301,11 +4298,11 @@ void t_kotlin_generator::generate_deep_copy_container(ostream &out,
   }
 
   if (is_enum_set(container)) {
-    indent(out) << "val " << result_name << ": " << type_name(type, true, false) << " = "
-                << type_name(container, false, true, true) << ".noneOf(" << constructor_args << ")" << endl;
+    indent(out) << "val " << result_name << ": " << type_name(type, true) << " = "
+                << type_name(container, false, true) << ".noneOf(" << constructor_args << ")" << endl;
   } else {
-    indent(out) << "val " << result_name << ": " << type_name(type, true, false) << " = "
-                << type_name(container, false, true) << "(" << constructor_args << ")" << endl;
+    indent(out) << "val " << result_name << ": " << type_name(type, true) << " = "
+                << type_name(container, false) << "(" << constructor_args << ")" << endl;
   }
 
   std::string iterator_element_name = source_name_p1 + "_element";
@@ -4315,15 +4312,15 @@ void t_kotlin_generator::generate_deep_copy_container(ostream &out,
     t_type *key_type = ((t_map *) container)->get_key_type();
     t_type *val_type = ((t_map *) container)->get_val_type();
 
-    indent(out) << "for (" << iterator_element_name << ": MutableMap.MutableEntry<" << type_name(key_type, true, false) << ", "
-                << type_name(val_type, true, false) << "> " << " in " << source_name << "?.entries!!) {" << endl;
+    indent(out) << "for (" << iterator_element_name << ": MutableMap.MutableEntry<" << type_name(key_type, true) << ", "
+                << type_name(val_type, true) << "> " << " in " << source_name << "?.entries!!) {" << endl;
     indent_up();
 
     out << endl;
 
-    indent(out) << "val " << iterator_element_name << "_key: " << type_name(key_type, true, false)
+    indent(out) << "val " << iterator_element_name << "_key: " << type_name(key_type, true)
                 << " = " << iterator_element_name << ".key" << endl;
-    indent(out) << "val " << iterator_element_name << "_value: " << type_name(val_type, true, false)
+    indent(out) << "val " << iterator_element_name << "_value: " << type_name(val_type, true)
                 << " = " << iterator_element_name << ".value" << endl;
 
     out << endl;
@@ -4335,7 +4332,7 @@ void t_kotlin_generator::generate_deep_copy_container(ostream &out,
                                    result_element_name + "_key",
                                    key_type);
     } else {
-      indent(out) << "val " << result_element_name << "_key: " << type_name(key_type, true, false) << " = ";
+      indent(out) << "val " << result_element_name << "_key: " << type_name(key_type, true) << " = ";
       generate_deep_copy_non_container(out,
                                        iterator_element_name + "_key",
                                        result_element_name + "_key",
@@ -4352,7 +4349,7 @@ void t_kotlin_generator::generate_deep_copy_container(ostream &out,
                                    result_element_name + "_value",
                                    val_type);
     } else {
-      indent(out) << "val " << result_element_name << "_value: " << type_name(val_type, true, false) << " = ";
+      indent(out) << "val " << result_element_name << "_value: " << type_name(val_type, true) << " = ";
       generate_deep_copy_non_container(out,
                                        iterator_element_name + "_value",
                                        result_element_name + "_value",
@@ -4377,7 +4374,7 @@ void t_kotlin_generator::generate_deep_copy_container(ostream &out,
       elem_type = ((t_list *) container)->get_elem_type();
     }
 
-    indent(out) << "for (" << iterator_element_name << ": " << type_name(elem_type, true, false)
+    indent(out) << "for (" << iterator_element_name << ": " << type_name(elem_type, true)
                 << " in " << source_name << "!!) {" << endl;
 
     indent_up();
@@ -4423,7 +4420,7 @@ void t_kotlin_generator::generate_deep_copy_non_container(ostream &out,
       out << source_name;
     }
   } else {
-    out << "" << type_name(type, true, true) << "(" << source_name << "!!)";
+    out << "" << type_name(type, true) << "(" << source_name << "!!)";
   }
 }
 

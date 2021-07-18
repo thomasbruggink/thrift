@@ -92,6 +92,12 @@ SUBDIRS += rs
 PRECROSS_TARGET += precross-rs
 endif
 
+if WITH_KOTLIN
+SUBDIRS += kotlin
+PRECROSS_TARGET += precross-kotlin
+endif
+
+
 #
 # generate html for ThriftTest.thrift AND validate it!
 #
@@ -124,6 +130,7 @@ EXTRA_DIST = \
 	dart \
 	erl \
 	keys \
+	kotlin \
 	lua \
 	ocaml \
 	perl \

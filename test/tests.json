@@ -241,6 +241,56 @@
     "workdir": "hs"
   },
   {
+    "name": "kotlin",
+    "join_args": false,
+    "server": {
+      "delay": 15,
+      "command": [
+        "./gradlew",
+        ":server:run"
+      ],
+      "protocols": [
+        "binary:multi",
+        "compact:multic",
+        "json:multij"
+      ]
+    },
+    "client": {
+      "timeout": 13,
+      "command": [
+        "./gradlew",
+        ":client:run"
+      ],
+      "transports": [
+        "http"
+      ],
+      "protocols": [
+        "multi:binary",
+        "multic:compact",
+        "multij:json"
+      ]
+    },
+    "transports": [
+      "buffered",
+      "framed",
+      "framed:fastframed",
+      "zlib"
+    ],
+    "sockets": [
+      "ip",
+      "ip-ssl"
+    ],
+    "protocols": [
+      "binary",
+      "compact",
+      "json",
+      "multi",
+      "multic",
+      "multij"
+    ],
+    "workdir": "kotlin"
+  },
+  {
     "name": "py",
     "server": {
       "extra_args": ["TSimpleServer"],
