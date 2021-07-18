@@ -3630,7 +3630,7 @@ void t_kotlin_generator::generate_deserialize_map_element(ostream &out,
 
   // For loop iterates over elements
   string i = tmp("_i");
-  indent(out) << "for (" << i << " in 0.." << obj << ".size)" << endl;
+  indent(out) << "for (" << i << " in 0 until " << obj << ".size)" << endl;
 
   scope_up(out);
 
@@ -3672,7 +3672,7 @@ void t_kotlin_generator::generate_deserialize_set_element(ostream &out,
 
   // For loop iterates over elements
   string i = tmp("_i");
-  indent(out) << "for (" << i << " in 0.." << obj << ".size)" << endl;
+  indent(out) << "for (" << i << " in 0 until " << obj << ".size)" << endl;
   scope_up(out);
 
   generate_deserialize_field(out, &felem, "", has_metadata);
@@ -3708,7 +3708,7 @@ void t_kotlin_generator::generate_deserialize_list_element(ostream &out,
 
   // For loop iterates over elements
   string i = tmp("_i");
-  indent(out) << "for (" << i << " in 0.." << obj << ".size)" << endl;
+  indent(out) << "for (" << i << " in 0 until " << obj << ".size)" << endl;
   scope_up(out);
 
   generate_deserialize_field(out, &felem, "", has_metadata);
@@ -3947,7 +3947,7 @@ string t_kotlin_generator::type_name(t_type *ttype,
   } else if (ttype->is_set()) {
     t_set *tset = (t_set *) ttype;
     if (is_enum_set(tset)) {
-      prefix = "EnumSet";
+      prefix = "java.util.EnumSet";
     } else {
       prefix = "HashSet";
     }
@@ -4041,7 +4041,7 @@ string t_kotlin_generator::declare_field(t_field *tfield, bool comment, bool las
         result += " = 0.0";
         break;
     }
-  } else if (ttype->is_enum() || is_enum_map(ttype)) {
+  } else if (ttype->is_enum() || is_enum_map(ttype) || is_enum_set(ttype)) {
     result += " = null";
   } else {
     result += " = " + type_name(ttype, false, true) + "()";
@@ -4301,8 +4301,8 @@ void t_kotlin_generator::generate_deep_copy_container(ostream &out,
   }
 
   if (is_enum_set(container)) {
-    indent(out) << type_name(type, true, false) << " " << result_name << " = "
-                << type_name(container, false, true, true) << ".noneOf(" << constructor_args << ");" << endl;
+    indent(out) << "val " << result_name << ": " << type_name(type, true, false) << " = "
+                << type_name(container, false, true, true) << ".noneOf(" << constructor_args << ")" << endl;
   } else {
     indent(out) << "val " << result_name << ": " << type_name(type, true, false) << " = "
                 << type_name(container, false, true) << "(" << constructor_args << ")" << endl;
