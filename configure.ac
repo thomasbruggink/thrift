@@ -20,11 +20,11 @@
 AC_PREREQ(2.65)
 AC_CONFIG_MACRO_DIR([./aclocal])
 
-AC_INIT([thrift], [0.15.0])
+AC_INIT([thrift], [0.16.0])
 
 AC_CONFIG_AUX_DIR([.])
 
-AM_INIT_AUTOMAKE([1.13 subdir-objects tar-ustar])
+AM_INIT_AUTOMAKE([1.13 subdir-objects tar-ustar foreign])
 PKG_PROG_PKG_CONFIG
 
 AC_ARG_VAR([PY_PREFIX], [Prefix for installing Python modules.

@@ -854,16 +854,50 @@ string t_go_generator::render_program_import(const t_program* program, string& u
   return result;
 }
 
+/**
+ * Render import lines for the system packages.
+ *
+ * The arg system_packages supports the following two options for import auto
+ * rename in case duplications happens:
+ *
+ * 1. The full import path without double quotation marks, with part after the
+ *    last "/" as the import identifier. e.g.:
+ *    - "context" (context)
+ *    - "database/sql/driver" (driver)
+ * 2. A rename import with double quotation marks around the full import path,
+ *    with the part before the first space as the import identifier. e.g.:
+ *    - "thrift \"github.com/apache/thrift/lib/go/thrift\"" (thrift)
+ *
+ * If a system package's package name is different from the last part of its
+ * full import path, please always rename import it for dedup to work correctly,
+ * e.g. "package \"github.com/org/go-package\"".
+ *
+ * @param system_packages
+ */
 string t_go_generator::render_system_packages(std::vector<string>& system_packages) {
   string result = "";
 
   for (vector<string>::iterator iter = system_packages.begin(); iter != system_packages.end(); ++iter) {
     string package = *iter;
-    result += "\t\""+ package +"\"\n";
+    string identifier = package;
+    auto space_pos = package.find(" ");
+    if (space_pos != string::npos) {
+      // This is a rename import line, no need to wrap double quotation marks.
+      result += "\t"+ package +"\n";
+      // The part before the first space is the import identifier.
+      identifier = package.substr(0, space_pos);
+    } else {
+      result += "\t\""+ package +"\"\n";
+      // The part after the last / is the import identifier.
+      auto slash_pos = package.rfind("/");
+      if (slash_pos != string::npos) {
+        identifier = package.substr(slash_pos+1);
+      }
+    }
 
     // Reserve these package names in case the collide with imported Thrift packages
-    package_identifiers_set_.insert(package);
-    package_identifiers_.emplace(package, package);
+    package_identifiers_set_.insert(identifier);
+    package_identifiers_.emplace(package, identifier);
   }
   return result;
 }
@@ -929,8 +963,9 @@ string t_go_generator::go_imports_begin(bool consts) {
   }
   system_packages.push_back("fmt");
   system_packages.push_back("time");
-  system_packages.push_back(gen_thrift_import_);
-  return "import(\n" + render_system_packages(system_packages);
+  // For the thrift import, always do rename import to make sure it's called thrift.
+  system_packages.push_back("thrift \"" + gen_thrift_import_ + "\"");
+  return "import (\n" + render_system_packages(system_packages);
 }
 
 /**
@@ -1102,6 +1137,10 @@ void t_go_generator::generate_const(t_const* tconst) {
  * validate_types method in main.cc
  */
 string t_go_generator::render_const_value(t_type* type, t_const_value* value, const string& name, bool opt) {
+  string typedef_opt_ptr;
+  if (type->is_typedef()) {
+    typedef_opt_ptr = type_name(type) + "Ptr";
+  }
   type = get_true_type(type);
   std::ostringstream out;
 
@@ -1109,32 +1148,61 @@ string t_go_generator::render_const_value(t_type* type, t_const_value* value, co
     t_base_type::t_base tbase = ((t_base_type*)type)->get_base();
 
     if (opt) {
-      out << "&(&struct{x ";
       switch (tbase) {
         case t_base_type::TYPE_BOOL:
-          out << "bool}{";
+          if (typedef_opt_ptr != "") {
+            out << typedef_opt_ptr;
+          } else {
+            out << "thrift.BoolPtr";
+          }
+          out << "(";
           out << (value->get_integer() > 0 ? "true" : "false");
           break;
 
         case t_base_type::TYPE_I8:
-          out << "int8}{";
+          if (typedef_opt_ptr != "") {
+            out << typedef_opt_ptr;
+          } else {
+            out << "thrift.Int8Ptr";
+          }
+          out << "(";
           out << value->get_integer();
           break;
         case t_base_type::TYPE_I16:
-          out << "int16}{";
+          if (typedef_opt_ptr != "") {
+            out << typedef_opt_ptr;
+          } else {
+            out << "thrift.Int16Ptr";
+          }
+          out << "(";
           out << value->get_integer();
           break;
         case t_base_type::TYPE_I32:
-          out << "int32}{";
+          if (typedef_opt_ptr != "") {
+            out << typedef_opt_ptr;
+          } else {
+            out << "thrift.Int32Ptr";
+          }
+          out << "(";
           out << value->get_integer();
           break;
         case t_base_type::TYPE_I64:
-          out << "int64}{";
+          if (typedef_opt_ptr != "") {
+            out << typedef_opt_ptr;
+          } else {
+            out << "thrift.Int64Ptr";
+          }
+          out << "(";
           out << value->get_integer();
           break;
 
         case t_base_type::TYPE_DOUBLE:
-          out << "float64}{";
+          if (typedef_opt_ptr != "") {
+            out << typedef_opt_ptr;
+          } else {
+            out << "thrift.Float64Ptr";
+          }
+          out << "(";
           if (value->get_type() == t_const_value::CV_INTEGER) {
             out << value->get_integer();
           } else {
@@ -1143,14 +1211,19 @@ string t_go_generator::render_const_value(t_type* type, t_const_value* value, co
           break;
 
         case t_base_type::TYPE_STRING:
-          out << "string}{";
+          if (typedef_opt_ptr != "") {
+            out << typedef_opt_ptr;
+          } else {
+            out << "thrift.StringPtr";
+          }
+          out << "(";
           out << '"' + get_escaped_string(value) + '"';
           break;
 
         default:
           throw "compiler error: no const of base type " + t_base_type::t_base_name(tbase);
       }
-      out << "}).x";
+      out << ")";
     } else {
       switch (tbase) {
         case t_base_type::TYPE_STRING:
@@ -1193,7 +1266,17 @@ string t_go_generator::render_const_value(t_type* type, t_const_value* value, co
       }
     }
   } else if (type->is_enum()) {
-    indent(out) << value->get_integer();
+    if (opt) {
+      if (typedef_opt_ptr != "") {
+        out << typedef_opt_ptr << "(";
+      } else {
+        out << type_name(type) << "Ptr(";
+      }
+    }
+    out << value->get_integer();
+    if (opt) {
+      out << ")";
+    }
   } else if (type->is_struct() || type->is_xception()) {
     out << "&" << publicize(type_name(type)) << "{";
     indent_up();
@@ -1226,7 +1309,7 @@ string t_go_generator::render_const_value(t_type* type, t_const_value* value, co
     t_type* ktype = ((t_map*)type)->get_key_type();
     t_type* vtype = ((t_map*)type)->get_val_type();
     const map<t_const_value*, t_const_value*, t_const_value::value_compare>& val = value->get_map();
-    out << "map[" << type_to_go_type(ktype) << "]" << type_to_go_type(vtype) << "{" << endl;
+    out << "map[" << type_to_go_key_type(ktype) << "]" << type_to_go_type(vtype) << "{" << endl;
     indent_up();
     map<t_const_value*, t_const_value*, t_const_value::value_compare>::const_iterator v_iter;
 
@@ -1253,7 +1336,7 @@ string t_go_generator::render_const_value(t_type* type, t_const_value* value, co
   } else if (type->is_set()) {
     t_type* etype = ((t_set*)type)->get_elem_type();
     const vector<t_const_value*>& val = value->get_list();
-    out << "[]" << type_to_go_key_type(etype) << "{" << endl;
+    out << "[]" << type_to_go_type(etype) << "{" << endl;
     indent_up();
     vector<t_const_value*>::const_iterator v_iter;
 
@@ -1771,7 +1854,7 @@ void t_go_generator::generate_go_struct_writer(ostream& out,
     std::string tstruct_name(publicize(tstruct->get_name()));
     out << indent() << "if c := p.CountSetFields" << tstruct_name << "(); c != 1 {" << endl
         << indent()
-        << "  return fmt.Errorf(\"%T write union: exactly one field must be set (%d set).\", p, c)"
+        << "  return fmt.Errorf(\"%T write union: exactly one field must be set (%d set)\", p, c)"
         << endl << indent() << "}" << endl;
   }
   out << indent() << "if err := oprot.WriteStructBegin(ctx, \"" << name << "\"); err != nil {" << endl;
@@ -2212,7 +2295,23 @@ void t_go_generator::generate_service_client(t_service* tservice) {
         f_types_ << indent() << "}" << endl << endl;
       }
 
-      if (!(*f_iter)->get_returntype()->is_void()) {
+      if ((*f_iter)->get_returntype()->is_struct()) {
+        // Check if the result is nil, which likely means we have a new
+        // exception added but unknown to the client yet
+        // (e.g. client hasn't updated the thrift file).
+        // Sadly this check can only be reliable done when the return type is a
+        // struct in go.
+        std::string retName = tmp("_ret");
+        f_types_ << indent() << "if " << retName << " := " << resultName
+                 << ".GetSuccess(); " << retName << " != nil {" << endl;
+        indent_up();
+        f_types_ << indent() << "return " << retName << ", nil" << endl;
+        indent_down();
+        f_types_ << indent() << "}" << endl;
+        f_types_ << indent() << "return nil, "
+                 << "thrift.NewTApplicationException(thrift.MISSING_RESULT, \""
+                 << method << " failed: unknown result\")" << endl;
+      } else if (!(*f_iter)->get_returntype()->is_void()) {
         f_types_ << indent() << "return " << resultName << ".GetSuccess(), nil" << endl;
       } else {
         f_types_ << indent() << "return nil" << endl;
@@ -2293,12 +2392,13 @@ void t_go_generator::generate_service_remote(t_service* tservice) {
   system_packages.push_back("os");
   system_packages.push_back("strconv");
   system_packages.push_back("strings");
+  // For the thrift import, always do rename import to make sure it's called thrift.
+  system_packages.push_back("thrift \"" + gen_thrift_import_ + "\"");
 
   f_remote << go_autogen_comment();
   f_remote << indent() << "package main" << endl << endl;
   f_remote << indent() << "import (" << endl;
   f_remote << render_system_packages(system_packages);
-  f_remote << indent() << "\t\"" + gen_thrift_import_ + "\"" << endl;
   f_remote << indent() << render_included_programs(unused_protection);
   f_remote << render_program_import(program_, unused_protection);
   f_remote << indent() << ")" << endl;
@@ -2405,6 +2505,7 @@ void t_go_generator::generate_service_remote(t_service* tservice) {
   f_remote << indent() << endl;
   f_remote << indent() << "cmd := flag.Arg(0)" << endl;
   f_remote << indent() << "var err error" << endl;
+  f_remote << indent() << "var cfg *thrift.TConfiguration = nil" << endl;
   f_remote << indent() << "if useHttp {" << endl;
   f_remote << indent() << "  trans, err = thrift.NewTHttpClient(parsedUrl.String())" << endl;
   f_remote << indent() << "  if len(headers) > 0 {" << endl;
@@ -2423,14 +2524,13 @@ void t_go_generator::generate_service_remote(t_service* tservice) {
   f_remote << indent() << "                 os.Exit(1)" << endl;
   f_remote << indent() << "         }" << endl;
   f_remote << indent() << "  }" << endl;
-  f_remote << indent() << "  trans, err = thrift.NewTSocket(net.JoinHostPort(host, portStr))"
-           << endl;
+  f_remote << indent() << "  trans = thrift.NewTSocketConf(net.JoinHostPort(host, portStr), cfg)" << endl;
   f_remote << indent() << "  if err != nil {" << endl;
   f_remote << indent() << "    fmt.Fprintln(os.Stderr, \"error resolving address:\", err)" << endl;
   f_remote << indent() << "    os.Exit(1)" << endl;
   f_remote << indent() << "  }" << endl;
   f_remote << indent() << "  if framed {" << endl;
-  f_remote << indent() << "    trans = thrift.NewTFramedTransport(trans)" << endl;
+  f_remote << indent() << "    trans = thrift.NewTFramedTransportConf(trans, cfg)" << endl;
   f_remote << indent() << "  }" << endl;
   f_remote << indent() << "}" << endl;
   f_remote << indent() << "if err != nil {" << endl;
@@ -2441,16 +2541,16 @@ void t_go_generator::generate_service_remote(t_service* tservice) {
   f_remote << indent() << "var protocolFactory thrift.TProtocolFactory" << endl;
   f_remote << indent() << "switch protocol {" << endl;
   f_remote << indent() << "case \"compact\":" << endl;
-  f_remote << indent() << "  protocolFactory = thrift.NewTCompactProtocolFactory()" << endl;
+  f_remote << indent() << "  protocolFactory = thrift.NewTCompactProtocolFactoryConf(cfg)" << endl;
   f_remote << indent() << "  break" << endl;
   f_remote << indent() << "case \"simplejson\":" << endl;
-  f_remote << indent() << "  protocolFactory = thrift.NewTSimpleJSONProtocolFactory()" << endl;
+  f_remote << indent() << "  protocolFactory = thrift.NewTSimpleJSONProtocolFactoryConf(cfg)" << endl;
   f_remote << indent() << "  break" << endl;
   f_remote << indent() << "case \"json\":" << endl;
   f_remote << indent() << "  protocolFactory = thrift.NewTJSONProtocolFactory()" << endl;
   f_remote << indent() << "  break" << endl;
   f_remote << indent() << "case \"binary\", \"\":" << endl;
-  f_remote << indent() << "  protocolFactory = thrift.NewTBinaryProtocolFactoryDefault()" << endl;
+  f_remote << indent() << "  protocolFactory = thrift.NewTBinaryProtocolFactoryConf(cfg)" << endl;
   f_remote << indent() << "  break" << endl;
   f_remote << indent() << "default:" << endl;
   f_remote << indent() << "  fmt.Fprintln(os.Stderr, \"Invalid protocol specified: \", protocol)"

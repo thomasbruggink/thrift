@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
@@ -105,7 +105,7 @@ namespace Thrift.Server
                      TTransportFactory outputTransportFactory,
                      TProtocolFactory inputProtocolFactory,
                      TProtocolFactory outputProtocolFactory,
-                     int minThreadPoolThreads, int maxThreadPoolThreads, ILogger logger= null)
+                     int minThreadPoolThreads, int maxThreadPoolThreads, ILogger logger = null)
             : this(processorFactory, serverTransport, inputTransportFactory, outputTransportFactory,
              inputProtocolFactory, outputProtocolFactory,
              new Configuration(minThreadPoolThreads, maxThreadPoolThreads),
@@ -178,7 +178,7 @@ namespace Thrift.Server
                     try
                     {
                         TTransport client = await ServerTransport.AcceptAsync(cancellationToken);
-                        ThreadPool.QueueUserWorkItem(this.Execute, client);
+                        _ = Task.Run(async () => await ExecuteAsync(client), cancellationToken);  // intentionally ignoring retval
                     }
                     catch (TaskCanceledException)
                     {
@@ -216,14 +216,14 @@ namespace Thrift.Server
 
         /// <summary>
         /// Loops on processing a client forever
-        /// threadContext will be a TTransport instance
+        /// client will be a TTransport instance
         /// </summary>
-        /// <param name="threadContext"></param>
-        private void Execute(object threadContext)
+        /// <param name="client"></param>
+        private async Task ExecuteAsync(TTransport client)
         {
             var cancellationToken = ServerCancellationToken;
 
-            using (TTransport client = (TTransport)threadContext)
+            using (client)
             {
                 ITAsyncProcessor processor = ProcessorFactory.GetAsyncProcessor(client, this);
                 TTransport inputTransport = null;
@@ -242,12 +242,12 @@ namespace Thrift.Server
 
                         //Recover event handler (if any) and fire createContext server event when a client connects
                         if (ServerEventHandler != null)
-                            connectionContext = ServerEventHandler.CreateContextAsync(inputProtocol, outputProtocol, cancellationToken).Result;
+                            connectionContext = await ServerEventHandler.CreateContextAsync(inputProtocol, outputProtocol, cancellationToken);
 
                         //Process client requests until client disconnects
-                        while (!stop)
+                        while (!(stop || cancellationToken.IsCancellationRequested))
                         {
-                            if (! inputTransport.PeekAsync(cancellationToken).Result)
+                            if (!await inputTransport.PeekAsync(cancellationToken))
                                 break;
 
                             //Fire processContext server event
@@ -255,10 +255,10 @@ namespace Thrift.Server
                             //That is to say it may be many minutes between the event firing and the client request
                             //actually arriving or the client may hang up without ever makeing a request.
                             if (ServerEventHandler != null)
-                                ServerEventHandler.ProcessContextAsync(connectionContext, inputTransport, cancellationToken).Wait();
+                                await ServerEventHandler.ProcessContextAsync(connectionContext, inputTransport, cancellationToken);
 
                             //Process client request (blocks until transport is readable)
-                            if (!processor.ProcessAsync(inputProtocol, outputProtocol, cancellationToken).Result)
+                            if (!await processor.ProcessAsync(inputProtocol, outputProtocol, cancellationToken))
                                 break;
                         }
                     }
@@ -274,7 +274,7 @@ namespace Thrift.Server
 
                     //Fire deleteContext server event after client disconnects
                     if (ServerEventHandler != null)
-                        ServerEventHandler.DeleteContextAsync(connectionContext, inputProtocol, outputProtocol, cancellationToken).Wait();
+                        await ServerEventHandler.DeleteContextAsync(connectionContext, inputProtocol, outputProtocol, cancellationToken);
 
                 }
                 finally
