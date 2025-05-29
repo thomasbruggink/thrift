@@ -301,8 +301,10 @@ public:
       it = my_copy.find(base_language);
 
       if (it == my_copy.end()) {
-        std::string warning = "No generator named '" + base_language + "' could be found!";
-        pwarning(1, warning.c_str());
+        if (base_language != "cocoa") {
+          std::string warning = "No generator named '" + base_language + "' could be found!";
+          pwarning(1, warning.c_str());
+        }
       } else {
         if (sub_index != std::string::npos) {
           std::string sub_namespace = language.substr(sub_index + 1);
