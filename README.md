@@ -1,210 +1,69 @@
-Apache Thrift
-=============
+# Apache Thrift
 
-Introduction
-============
+LINE Shop's fork of Apache Thrift.
 
-Thrift is a lightweight, language-independent software stack for
-point-to-point RPC implementation.
-Thrift provides clean abstractions and implementations for data transport,
-data serialization, and application level processing. The code generation
-system takes a simple definition language as input and generates code
-across programming languages that uses the abstracted stack to build
-interoperable RPC clients and servers.
+[![Build Status](https://jenkins.linecorp.com/buildStatus/icon?job=thrift_compiler)](https://jenkins.linecorp.com/job/thrift_compiler/)
 
-![Apache Thrift Layered Architecture](doc/images/thrift-layers.png)
+Contains the following changes:
+- Don't warn on Cocoa namespaces
+  - We need this to support iOS which uses an older version of Thrift
+- Added Bazel to build the compiler
+  - This allows for easier cross environment builds
 
-Thrift makes it easy for programs written in different programming
-languages to share data and call remote procedures.  With support
-for [28 programming languages](LANGUAGES.md), chances are Thrift
-supports the languages that you currently use.
+## Building
 
-Thrift is specifically designed to support non-atomic version changes
-across client and server code.  This allows you to upgrade your
-server while still being able to service older clients; or have newer
-clients issue requests to older servers.  An excellent community-provided
-write-up about thrift and compatibility when versioning an API can be
-found in the [Thrift Missing Guide](https://diwakergupta.github.io/thrift-missing-guide/#_versioning_compatibility).
+Download [bazelisk](https://github.com/bazelbuild/bazelisk/releases), rename it to `bazel` and add the binary to the path.
 
-For more details on Thrift's design and implementation, see the Thrift
-whitepaper included in this distribution, or at the README.md file
-in your particular subdirectory of interest.
+You can then build the project with
+```bash
+bazel build //compiler/cpp:thrift
+```
+The binary will be available in `bazel-bin/compiler/cpp/thrift`. The defalt build includes debug symbols and can be stripped on Linux and Mac like:
+```bash
+strip bazel-bin/compiler/cpp/thrift
+```
+Bazel has the tendency to make the binary readonly so if the file can't be stripped make sure to run `chmod 770 bazel-bin/compiler/cpp/thrift` first.
 
-Status
-======
+Since our build agents run an older version of GLibc its recommended to build the Linux version on the build agent. There is a [Jenkins job](https://jenkins.linecorp.com/job/thrift_compiler/) available that generates an artifact.
 
-| Branch | Travis | Appveyor | Coverity Scan | codecov.io | Website |
-| :----- | :----- | :------- | :------------ | :--------- | :------ |
-| [`master`](https://github.com/apache/thrift/tree/master) | [![Build Status](https://api.travis-ci.com/apache/thrift.svg?branch=master)](https://app.travis-ci.com/apache/thrift/branches) | [![Build status](https://ci.appveyor.com/api/projects/status/github/apache/thrift?branch=master&svg=true)](https://ci.appveyor.com/project/ApacheSoftwareFoundation/thrift/history) | [![Coverity Scan Build Status](https://scan.coverity.com/projects/1345/badge.svg)](https://scan.coverity.com/projects/thrift) | | [![Website](https://img.shields.io/badge/official-website-brightgreen.svg)](https://thrift.apache.org/) |
-| [`0.17.0`](https://github.com/apache/thrift/tree/0.17.0) | [![Build Status](https://api.travis-ci.com/apache/thrift.svg?branch=0.17.0)](https://app.travis-ci.com/apache/thrift/branches) | | | | |
+## Uploading a new compiler
 
-Releases
-========
+The Shop build uses binaries uploaded to [VOS](https://verda.linecorp.com/project/object-storage/thrift/objects/?region=tokyo&service=internal). Each version has the following binaries available:
+- `thrift.linux-aarch64`
+- `thrift.linux-amd64`
+- `thrift.macos-aarch64`
+- `thrift.macos-x86_64`
+- `thrift.windows-amd64`
 
-Thrift does not maintain a specific release calendar at this time.
+They can be downloaded from the following URL:
+```
+https://line-objects-internal.com/thrift/0.22.0/thrift.linux-amd64
+```
 
-We strive to release twice yearly.  Download the [current release](http://thrift.apache.org/download).
+---
 
-License
-=======
+Older versions are available on [binrepo](http://binrepo.linecorp.com/organizations/LINE-Shop/thrift/).
 
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements. See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership. The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License. You may obtain a copy of the License at
+Make a new directory on with the full version name:
+```bash
+curl -X MKCOL --user "$CONNECT_USERNAME" http://binrepo.linecorp.com/organizations/LINE-Shop/thrift/0.15.0
+```
 
-  http://www.apache.org/licenses/LICENSE-2.0
+Then upload the binary with the correct architecture suffix. For example, for Linux use:
+```bash
+curl -T bazel-bin/compiler/cpp/thrift --user "$CONNECT_USERNAME" http://binrepo.linecorp.com/organizations/LINE-Shop/thrift/0.15.0/thrift.linux-x86_64
+```
 
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied. See the License for the
-specific language governing permissions and limitations
-under the License.
+## Preparing a new Thrift version
 
-Project Hierarchy
-=================
+When setting up a branch for a new Thrift version, we need to add this README and remove GitHub Actions.
 
-thrift/
+Once Bazel module and build files are set up, we need to manually generate some files since we no longer use Make.
+Make sure that GNU Bison >=2.5 is on your PATH.
 
-  compiler/
-
-    Contains the Thrift compiler, implemented in C++.
-
-  lib/
-
-    Contains the Thrift software library implementation, subdivided by
-    language of implementation.
-
-    cpp/
-    go/
-    java/
-    php/
-    py/
-    rb/
-    ...
-
-  test/
-
-    Contains sample Thrift files and test code across the target programming
-    languages.
-
-  tutorial/
-
-    Contains a basic tutorial that will teach you how to develop software
-    using Thrift.
-
-Development
-===========
-
-To build the same way Travis CI builds the project you should use docker.
-We have [comprehensive building instructions for docker](build/docker/README.md).
-
-Requirements
-============
-
-See http://thrift.apache.org/docs/install for a list of build requirements (may be stale).  Alternatively, see the docker build environments for a list of prerequisites.
-
-Resources
-=========
-
-More information about Thrift can be obtained on the Thrift webpage at:
-
-     http://thrift.apache.org
-
-Acknowledgments
-===============
-
-Thrift was inspired by pillar, a lightweight RPC tool written by Adam D'Angelo,
-and also by Google's protocol buffers.
-
-Installation
-============
-
-If you are building from the first time out of the source repository, you will
-need to generate the configure scripts.  (This is not necessary if you
-downloaded a tarball.)  From the top directory, do:
-
-    ./bootstrap.sh
-
-Once the configure scripts are generated, thrift can be configured.
-From the top directory, do:
-
-    ./configure
-
-You may need to specify the location of the boost files explicitly.
-If you installed boost in `/usr/local`, you would run configure as follows:
-
-    ./configure --with-boost=/usr/local
-
-Note that by default the thrift C++ library is typically built with debugging
-symbols included. If you want to customize these options you should use the
-CXXFLAGS option in configure, as such:
-
-    ./configure CXXFLAGS='-g -O2'
-    ./configure CFLAGS='-g -O2'
-    ./configure CPPFLAGS='-DDEBUG_MY_FEATURE'
-
-To enable gcov required options -fprofile-arcs -ftest-coverage enable them:
-
-    ./configure  --enable-coverage
-
-Run ./configure --help to see other configuration options
-
-Please be aware that the Python library will ignore the --prefix option
-and just install wherever Python's distutils puts it (usually along
-the lines of `/usr/lib/pythonX.Y/site-packages/`).  If you need to control
-where the Python modules are installed, set the PY_PREFIX variable.
-(DESTDIR is respected for Python and C++.)
-
-Make thrift:
-
-    make
-
-From the top directory, become superuser and do:
-
-    make install
-
-Uninstall thrift:
-
-    make uninstall
-
-Note that some language packages must be installed manually using build tools
-better suited to those languages (at the time of this writing, this applies
-to Java, Ruby, PHP).
-
-Look for the README.md file in the lib/<language>/ folder for more details on the
-installation of each language library package.
-
-Package Managers
-================
-
-Apache Thrift is available via a number of package managers, a list which is
-is steadily growing. A more detailed overview can be found
-[at the Apache Thrift web site under "Libraries"](http://thrift.apache.org/lib/)
-and/or in the respective READMEs for each language under /lib
-
-Testing
-=======
-
-There are a large number of client library tests that can all be run
-from the top-level directory.
-
-    make -k check
-
-This will make all of the libraries (as necessary), and run through
-the unit tests defined in each of the client libraries. If a single
-language fails, the make check will continue on and provide a synopsis
-at the end.
-
-To run the cross-language test suite, please run:
-
-    make cross
-
-This will run a set of tests that use different language clients and
-servers.
-
-
+```bash
+cd compiler/cpp
+flex -o src/thrift/thriftl.cc src/thrift/thriftl.ll
+bison -y -o src/thrift/thrifty.cc --defines=src/thrift/thrifty.h src/thrift/thrifty.yy
+cp src/thrift/thrifty.h src/thrift/thrifty.hh
+```
