@@ -1,0 +1,53 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+config_setting(
+    name = "windows",
+    constraint_values = ["@platforms//os:windows"],
+)
+
+cc_library(
+    name = "thrift_headers",
+    hdrs = glob(
+        [
+            "src/thrift/**/*.h",
+            "src/thrift/**/*.hh",
+        ],
+        exclude = [
+            "src/thrift/windows/*.h",
+        ],
+    ),
+    strip_include_prefix = "src/",
+)
+
+cc_library(
+    name = "thrift_headers_win",
+    hdrs = glob(
+        [
+            "src/thrift/**/*.h",
+            "src/thrift/**/*.hh",
+        ],
+    ),
+    strip_include_prefix = "src/",
+)
+
+cc_binary(
+    name = "thrift",
+    srcs = glob(
+        [
+            "src/thrift/**/*.cc",
+            "src/thrift/**/*.cpp",
+            "src/thrift/generate/*.h",
+        ],
+        exclude = [
+            "src/thrift/logging.cc",
+        ],
+    ),
+    linkopts = select({
+        ":windows": ["-DEFAULTLIB:Ole32.lib"],
+        "//conditions:default": [],
+    }),
+    deps = select({
+        ":windows": [":thrift_headers_win"],
+        "//conditions:default": [":thrift_headers"],
+    }),
+)
