@@ -1,1 +1,8 @@
 module(name = "thrift")
+
+bazel_dep(name = "platforms", version = "0.0.10")
+register_toolchains(
+    "//toolchain:cc_toolchain_for_linux_aarch64",
+    "//toolchain:cc_toolchain_for_linux_x86_64",
+    "//toolchain:cc_toolchain_for_w64_x86_64"
+)

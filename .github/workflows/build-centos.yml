@@ -1,0 +1,24 @@
+name: linux-centos
+run-name: Build linux centos binaries
+on: 
+  workflow_dispatch:
+jobs:
+  build-env:
+    strategy:
+      matrix:
+        arch: [ amd64 ]
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create container
+        shell: bash
+        run: >
+          docker build --network host -t thrift-centos -f dockerfile_centos.linux .
+      - name: Build binary
+        shell: bash
+        run: >
+          docker run -i --rm -v $PWD:/thrift thrift-centos bash -c "bazel build --platforms=//:linux_${{ matrix.arch }} //compiler/cpp:thrift && cp bazel-bin/compiler/cpp/thrift ./thrift"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: thrift.linux-${{ matrix.arch }}
+          path: thrift

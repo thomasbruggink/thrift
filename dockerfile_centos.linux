@@ -1,0 +1,27 @@
+FROM centos:7
+
+SHELL ["/bin/bash", "-eux", "-o", "pipefail", "-c"]
+
+RUN sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo && \
+    sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo && \
+    sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo && \
+    yum update -y && \
+    yum groupinstall -y "Development Tools" && \
+    yum install -y wget
+
+ARG BAZELISK_VERSION=1.26.0
+
+RUN ARCH=`uname -m` && \
+    if [ $ARCH = "x86_64" ]; then ARCH="amd64"; fi && \
+    wget https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-$ARCH && \
+    mkdir -p /opt/bazel && \
+    mv bazelisk-linux-$ARCH /opt/bazel/bazel && \
+    chmod +x /opt/bazel/bazel
+
+ENV PATH=$PATH:/opt/bazel
+
+COPY .bazelversion /
+
+RUN bazel --version
+
+WORKDIR /thrift
