@@ -1,0 +1,37 @@
+name: cross-compiler-image
+run-name: Build cross compiler container image
+on: 
+  workflow_dispatch:
+jobs:
+  build-env:
+    runs-on: ${{ vars.RUNNER_LARGE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Login to VCR"
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: vcr-dev.linecorp.com
+          username: ${{ vars.VCR_DEV_USERNAME }}
+          password: ${{ secrets.VCR_DEV_PASSWORD }}
+      - name: Get UID/GID of the current user
+        id: ids                        # give the step an id so we can read its outputs
+        run: |
+          echo "uid=$(id -u)"      >> $GITHUB_OUTPUT   # numeric user id
+          echo "gid=$(id -g)"      >> $GITHUB_OUTPUT   # numeric group id
+      - name: "Configure Docker Buildx"
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+        with:
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["docker-hub-mirror.linecorp.com"]
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
+          file: ./dockerfile.linux
+          push: true
+          tags: vcr-dev.linecorp.com/lineshop/env/thrift-cross-compiler
+          build-args: |
+            uid=${{ steps.ids.outputs.uid }}
+            gid=${{ steps.ids.outputs.gid }}

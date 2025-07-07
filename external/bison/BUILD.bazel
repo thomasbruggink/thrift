@@ -1,0 +1,39 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+config_setting(
+    name = "linux",
+    constraint_values = ["@platforms//os:linux"],
+)
+
+cc_library(
+    name = "bison_headers_mac",
+    hdrs = glob(
+        [
+            "mac/**/*.h",
+        ]),
+    strip_include_prefix = "mac/"
+)
+
+cc_library(
+    name = "bison_headers_linux",
+    hdrs = glob(
+        [
+            "linux/**/*.h",
+        ]),
+    strip_include_prefix = "linux/"
+)
+
+cc_library(
+    name = "bison_headers",
+    hdrs = glob(
+        [
+            "generic/**/*.h",
+        ],
+    ),
+    deps = select({
+        ":linux": [":bison_headers_linux"],
+        "//conditions:default": [":bison_headers_mac"],
+    }),
+    strip_include_prefix = "generic/",
+    visibility = ["//visibility:public"],
+)

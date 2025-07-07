@@ -1,1 +1,3 @@
-build --action_env=BAZEL_CXXOPTS="-std=c++11" --strip=always
+build --action_env=BAZEL_CXXOPTS="-std=c++11" 
+build --strip=always 
+build --verbose_failures

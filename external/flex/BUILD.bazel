@@ -1,0 +1,35 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+config_setting(
+    name = "linux",
+    constraint_values = ["@platforms//os:linux"],
+)
+
+cc_library(
+    name = "flex_headers_mac",
+    hdrs = glob(
+        [
+            "mac/**/*.h",
+        ],
+    ),
+    strip_include_prefix = "mac/"
+)
+
+cc_library(
+    name = "flex_headers_linux",
+    hdrs = glob(
+        [
+            "linux/**/*.h",
+        ],
+    ),
+    strip_include_prefix = "linux/"
+)
+
+cc_library(
+    name = "flex_headers",
+    deps = select({
+        ":linux": [":flex_headers_linux"],
+        "//conditions:default": [":flex_headers_mac"],
+    }),
+    visibility = ["//visibility:public"],
+)

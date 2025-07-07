@@ -1,14 +1,15 @@
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 load(
     "@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl",
-    "feature",    
-    "flag_group", 
-    "flag_set",   
+    "artifact_name_pattern",
+    "feature",
+    "flag_group",
+    "flag_set",
     "tool_path",
 )
 load("@rules_cc//cc:defs.bzl", "cc_toolchain")
 
-all_link_actions = [ 
+all_link_actions = [
     ACTION_NAMES.cpp_link_executable,
     ACTION_NAMES.cpp_link_dynamic_library,
     ACTION_NAMES.cpp_link_nodeps_dynamic_library,
@@ -17,9 +18,9 @@ all_link_actions = [
 def _impl(ctx):
     arch = ctx.attr.arch
     gcc_ver = ctx.attr.gcc_ver
-    target_triplet = "%s-%s-%s" % (arch, ctx.attr.os, ctx.attr.vendor)
+    target_triplet = "%s-%s" % (arch, ctx.attr.os_vendor)
     bin_path = "/usr/bin/%s" % (target_triplet)
-    tool_paths = [ 
+    tool_paths = [
         tool_path(
             name = "gcc",
             path = "%s-gcc" % (bin_path),
@@ -54,8 +55,13 @@ def _impl(ctx):
         ),
     ]
 
-    features = [ 
-        feature(
+    flags = []
+    if ctx.attr.os_vendor == "w64-mingw32":
+        flags.append("-l:libstdc++.a")
+    else:
+        flags.append("-lstdc++")
+        
+    features = [feature(
             name = "default_linker_flags",
             enabled = True,
             flag_sets = [
@@ -63,24 +69,34 @@ def _impl(ctx):
                     actions = all_link_actions,
                     flag_groups = ([
                         flag_group(
-                            flags = [
-                                "-lstdc++",
-                            ],
+                            flags = flags
                         ),
                     ]),
                 ),
             ],
-        ),
+        )
     ]
+
+    # Make sure to set the .exe extension for windows cross compilation
+    artifact_name_patterns = []
+    if ctx.attr.os_vendor == "w64-mingw32":
+        artifact_name_patterns.append(
+            artifact_name_pattern(
+                category_name = "executable",
+                prefix = "",
+                extension = ".exe",
+            ))
 
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
-        features = features, 
-        cxx_builtin_include_directories = [ 
+        features = features,
+        cxx_builtin_include_directories = [
             "/usr/lib/gcc-cross/%s/%s/include" % (target_triplet, ctx.attr.gcc_ver),
             "/usr/lib/gcc/%s" % (target_triplet),
             "/usr/share/mingw-w64/include",
-            "/usr/%s/include" % (target_triplet)
+            "/usr/%s/include" % (target_triplet),
+            "/sdk",
+            "/out",
         ],
         toolchain_identifier = "local",
         host_system_name = "local",
@@ -90,7 +106,8 @@ def _impl(ctx):
         compiler = "gcc",
         abi_version = "unknown",
         abi_libc_version = "unknown",
-        tool_paths = tool_paths, 
+        tool_paths = tool_paths,
+        artifact_name_patterns = artifact_name_patterns,
     )
 
 cc_toolchain_config = rule(
@@ -98,16 +115,15 @@ cc_toolchain_config = rule(
     attrs = {
         "arch": attr.string(),
         "gcc_ver": attr.int(),
-        "vendor": attr.string(),
-        "os": attr.string()
+        "os_vendor": attr.string(),
     },
     provides = [CcToolchainConfigInfo],
 )
 
-def gen_toolchain(arch, vendor, os, host_arch, gcc_ver, constraints):
-    cc_toolchain_name = "%s_%s_toolchain" % (os, arch)
-    cc_toolchain_config_name = "%s_%s_toolchain_config" % (os, arch)
-    cc_toolchain_config(name = cc_toolchain_config_name, arch = arch, vendor = vendor, os = os, gcc_ver = gcc_ver)
+def gen_toolchain(arch, os, os_vendor, host_arch, gcc_ver):
+    cc_toolchain_name = "%s_%s_toolchain_%s" % (os, arch, host_arch)
+    cc_toolchain_config_name = "%s_%s_toolchain_config_%s" % (os, arch, host_arch)
+    cc_toolchain_config(name = cc_toolchain_config_name, arch = arch, os_vendor = os_vendor, gcc_ver = gcc_ver)
 
     cc_toolchain(
         name = cc_toolchain_name,
@@ -122,17 +138,16 @@ def gen_toolchain(arch, vendor, os, host_arch, gcc_ver, constraints):
         supports_param_files = 0,
     )
 
-    target_compat = [
-        "@platforms//cpu:%s" % (arch)
-    ] + constraints
-
     native.toolchain(
-        name = "cc_toolchain_for_%s_%s" % (os, arch),
-        toolchain = "%s_%s_toolchain" % (os, arch),
+        name = "cc_toolchain_for_%s_%s_%s" % (os, arch, host_arch),
+        toolchain = cc_toolchain_name,
         toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
         exec_compatible_with = [
             "@platforms//cpu:%s" % (host_arch),
             "@platforms//os:linux",
         ],
-        target_compatible_with = target_compat
+        target_compatible_with = [
+            "@platforms//cpu:%s" % (arch),
+            "@platforms//os:%s" % (os),
+        ],
     )

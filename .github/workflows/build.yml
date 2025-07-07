@@ -1,24 +1,41 @@
 name: linux
-run-name: Build linux binaries
+run-name: Build binaries
 on: 
   workflow_dispatch:
 jobs:
   build-env:
     strategy:
       matrix:
-        arch: [ amd64, aarch64 ]
-    runs-on: self-hosted
+        os: [ apple, windows, linux ]
+        arch: [ x86-64, aarch64 ]
+        exclude:
+        # Broken mingw toolchain doesnt work with c++ yet, try again with the release of gcc 16
+        - os: windows
+          arch: aarch64
+    runs-on: ${{ vars.RUNNER_MEDIUM }}
     steps:
       - uses: actions/checkout@v4
-      - name: Create container
+      - name: "Login to VCR"
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: vcr-dev.linecorp.com
+          username: ${{ vars.VCR_DEV_USERNAME }}
+          password: ${{ secrets.VCR_DEV_PASSWORD }}
+      - name: "Configure Docker Buildx"
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+        with:
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["docker-hub-mirror.linecorp.com"]
+      - name: Create output dir
         shell: bash
         run: >
-          docker build --network host -t thrift -f dockerfile.linux .
+          mkdir -p out
       - name: Build binary
         shell: bash
         run: >
-          docker run -i --rm -v $PWD:/thrift thrift bash -c "bazel build --platforms=//:linux_${{ matrix.arch }} //compiler/cpp:thrift && cp bazel-bin/compiler/cpp/thrift ./thrift"
+          docker run -i --rm -v $PWD:/work vcr-dev.linecorp.com/lineshop/env/thrift-cross-compiler bash -c "make ${{ matrix.os }}-${{ matrix.arch }}"
       - uses: actions/upload-artifact@v3
         with:
-          name: thrift.linux-${{ matrix.arch }}
-          path: thrift
+          name: thrift.${{ matrix.os }}-${{ matrix.arch }}
+          path: out/thrift.${{ matrix.os }}-${{ matrix.arch }}

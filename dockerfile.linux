@@ -1,28 +1,238 @@
-FROM ubuntu:22.04
-
-SHELL ["/bin/bash", "-eux", "-o", "pipefail", "-c"]
+FROM ubuntu:24.04 AS mac-cross
 
 RUN apt-get update && \
     apt-get install -y \
         build-essential \
+        linux-libc-dev-arm64-cross \
+        linux-libc-dev-amd64-cross \
+        clang \
+        cmake \
+        texinfo \
+        libxml2-dev \
+        libssl-dev \
+        zlib1g-dev \
+        libmpc-dev \
+        libmpfr-dev \
+        libgmp-dev \
+        flex \
         wget \
         file \
+        git
+
+# Sequoia
+ARG MACOS_SDK_BASE=14
+ARG MACOS_SDK=${MACOS_SDK_BASE}.5
+ARG KERNEL_VERSION=24
+# Sonoma
+# ARG MACOS_SDK_BASE=14
+# ARG MACOS_SDK=${MACOS_SDK_BASE}.5
+# ARG KERNEL_VERSION=23
+# Big sur
+ARG TARGET_SDK_VERSION=11.0
+
+ENV MACOSX_DEPLOYMENT_TARGET=${TARGET_SDK_VERSION}
+
+RUN mkdir /work && \
+    mkdir /out && \
+    echo "/out/lib" > /etc/ld.so.conf.d/out.conf && \
+    echo "/sdk/usr/lib" >> /etc/ld.so.conf.d/out.conf
+
+ENV PATH=$PATH:/out/bin
+
+WORKDIR /work
+
+# Library to support eXtensible Archiver (XAR) format
+RUN git clone https://github.com/tpoechtrager/xar.git && \
+    cd xar/xar && \
+    git checkout 5fa4675419cfec60ac19a9c7f7c2d0e7c831a497 && \
+    ./configure \
+        --prefix=/out && \
+    make -j `nproc` && \
+    make install && \
+    rm -rf /work/xar
+
+# Libraries to support TAPI, this allows us to link against libSystem.tbd
+RUN git clone -b 1600.0.11.8 https://github.com/tpoechtrager/apple-libtapi.git && \
+    cd apple-libtapi && \
+    export INSTALLPREFIX=/out && \
+    ./build.sh && \
+    ./install.sh && \
+    rm -rf rm -rf /work/apple-libtapi
+
+# Libdispatch for linux
+RUN git clone https://github.com/tpoechtrager/apple-libdispatch.git && \
+    cd apple-libdispatch && \
+    git checkout fdf3fc85a9557635668c78801d79f10161d83f12 && \
+    mkdir build && \
+    cd build && \
+    CC=clang CXX=clang cmake -DCMAKE_INSTALL_PREFIX=/out .. && \
+    make -j `nproc` && \
+    make install && \
+    rm -rf /work/apple-libdispatch
+
+# Port of the linker, assembler and other tools for darwin to linux
+# We build this twice for 2 architectures
+RUN git clone https://github.com/tpoechtrager/cctools-port.git && \
+    cd cctools-port/cctools && \
+    git checkout 7224fd5c9390ea15cff6ee69ff92ea677b40014b && \
+    LDFLAGS="-L/out/lib" \
+    CFLAGS="-I/out/include" \
+    CXXFLAGS="-I/out/include" \
+    ./configure \
+        --prefix=/out \
+        --target=arm64-apple-darwin${KERNEL_VERSION} && \
+    make -j `nproc` && \
+    make install && \
+    make clean && \
+    LDFLAGS="-L/out/lib" \
+    CFLAGS="-I/out/include" \
+    CXXFLAGS="-I/out/include" \
+    ./configure \
+        --prefix=/out \
+        --target=x86_64-apple-darwin${KERNEL_VERSION} && \
+    make -j `nproc` && \
+    make install && \
+    rm -rf /work/cctools-port &&\
+    cd /out/bin && \
+    ls | grep arm64 | xargs -I{} bash -c 'ln -s {} `echo {} | sed "s/arm64/aarch64/"`'
+
+# Contains system libraries for macos
+RUN wget https://github.com/joseluisq/macosx-sdks/releases/download/${MACOS_SDK}/MacOSX${MACOS_SDK}.sdk.tar.xz && \
+    tar -xvf MacOSX${MACOS_SDK}.sdk.tar.xz && \
+    rm MacOSX${MACOS_SDK}.sdk.tar.xz && \
+    mv MacOSX${MACOS_SDK}.sdk /sdk
+
+# Compiler wrapper, gives support for the dsymutil binary
+RUN git clone https://github.com/tpoechtrager/osxcross.git && \
+    cd osxcross && \
+    git checkout 3d6a91c14a65b170aa50ecc3fda19dd6414e23a9 && \
+    mkdir -p $PWD/target && \
+    ln -s /sdk $PWD/target/SDK && \
+    export VERSION=1.5 && \
+    export SDK_VERSION=${MACOS_SDK} && \
+    export TARGET=darwin${KERNEL_VERSION} && \
+    export LINKER_VERSION=951.9 && \
+    export X86_64H_SUPPORTED=0 && \
+    export I386_SUPPORTED=0 && \
+    export ARM_SUPPORTED=1 && \
+    cd wrapper && \
+    TARGETCOMPILER=gcc ./build_wrapper.sh && \
+    TARGETCOMPILER=g++ ./build_wrapper.sh && \
+    cd .. && \
+    mv target /osxcross && \
+    rm -rf /work/osxcross
+
+ENV PATH=$PATH:/osxcross/bin
+RUN ldconfig
+
+# Compile a fork of gcc with support for darwin Mach-O
+RUN git clone --branch=gcc-14-2-darwin --depth=1 https://github.com/iains/gcc-14-branch gcc && \
+    mkdir gcc/build && \
+    cd gcc/build && \
+    ../configure \
+        --target=aarch64-apple-darwin${KERNEL_VERSION} \
+        --with-sysroot=/sdk \
+        --disable-nls \
+        --enable-languages=c,c++ \
+        --without-headers \
+        --enable-lto \
+        --enable-checking=release \
+        --disable-libstdcxx-pch \
+        --prefix=/out \
+        --with-system-zlib \
+        --disable-multilib \
+        --with-ld=/out/bin/aarch64-apple-darwin${KERNEL_VERSION}-ld \
+        --with-as=/out/bin/aarch64-apple-darwin${KERNEL_VERSION}-as && \
+    make -j `nproc` && \
+    make install && \
+    cd .. && \
+    rm -rf build && \
+    mkdir build && \
+    cd build && \
+    ../configure \
+        --target=x86_64-apple-darwin${KERNEL_VERSION} \
+        --with-sysroot=/sdk \
+        --disable-nls \
+        --enable-languages=c,c++ \
+        --without-headers \
+        --enable-lto \
+        --enable-checking=release \
+        --disable-libstdcxx-pch \
+        --prefix=/out \
+        --with-system-zlib \
+        --disable-multilib \
+        --with-ld=/out/bin/x86_64-apple-darwin${KERNEL_VERSION}-ld \
+        --with-as=/out/bin/x86_64-apple-darwin${KERNEL_VERSION}-as && \
+    make -j `nproc` && \
+    make install && \
+    rm -rf /work/gcc
+
+FROM ubuntu:24.04
+
+RUN apt-get update && \
+    apt-get install -y \
+        build-essential \
+        sudo \
+        wget \
+        m4 \
+        file \
+        clang \
+        strace \
         gcc-aarch64-linux-gnu \
-        g++-aarch64-linux-gnu
+        g++-aarch64-linux-gnu \
+        gcc-x86-64-linux-gnu \
+        g++-x86-64-linux-gnu \
+        gcc-mingw-w64 \
+        g++-mingw-w64
 
-ARG BAZELISK_VERSION=1.26.0
+COPY --from=mac-cross /out /out
+COPY --from=mac-cross /sdk /sdk
 
-RUN ARCH=`uname -m` && \
-    if [ $ARCH = "x86_64" ]; then ARCH="amd64"; elif [ $ARCH = "aarch64" ]; then ARCH="arm64"; fi && \
-    wget https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-$ARCH && \
-    mkdir -p /opt/bazel && \
-    mv bazelisk-linux-$ARCH /opt/bazel/bazel && \
+# Delete dylib files to force static linking
+RUN echo "/out/lib" > /etc/ld.so.conf.d/out.conf && \
+    ldconfig && \
+    cd /out/bin && \
+    ls | grep apple-darwin | xargs -I{} ln -s $PWD/{} /usr/bin/{} && \
+    rm -rf /out/x86_64-apple-darwin*/lib/*.dylib && \
+    rm -rf /out/aarch64-apple-darwin*/lib/*.dylib
+
+# Create a user
+ARG user=build
+ARG group=build
+ARG uid=1000
+ARG gid=1000
+
+RUN userdel ubuntu || true && \
+    groupdel ubuntu || true && \
+    echo "Running with: UID: ${uid}, User: ${user}, GID: ${gid}, Group: ${group}" && \
+    if [ -z `cat /etc/group | grep "${group}:"` ] && [ -z `cat /etc/group | grep ":${gid}:"` ]; then addgroup --gid ${gid} ${group}; fi && \
+    if [ -z `cat /etc/passwd | grep "${user}:"` ] && [ -z `cat /etc/passwd | grep ":${uid}:"` ]; then adduser --uid ${uid} --gid ${gid} --shell /bin/bash ${user} --disabled-password -q --gecos ""; fi && \
+    echo "${user} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    mkdir -p /home/${user} && \
+    chown -R ${user}:${group} /home/${user}
+
+ARG BAZELISK=1.26.0
+RUN mkdir /opt/bazel && \
+    export ARCH=`uname -m` && \
+    if [ "$ARCH" = "aarch64" ]; then export ARCH="arm64"; else export ARCH="amd64"; fi && \
+    wget https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK}/bazelisk-linux-${ARCH} && \
+    mv bazelisk-linux-${ARCH} /opt/bazel/bazel && \
     chmod +x /opt/bazel/bazel
 
-ENV PATH=$PATH:/opt/bazel
+RUN mkdir /opt/codesign && \
+    export ARCH=`uname -m` && \
+    if [ "$ARCH" = "aarch64" ]; then export ARCH="arm64"; else export ARCH="x86_64"; fi && \ 
+    cd /opt/codesign && \
+    wget https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.29.0/apple-codesign-0.29.0-${ARCH}-unknown-linux-musl.tar.gz && \
+    tar -xvf apple-codesign-0.29.0-${ARCH}-unknown-linux-musl.tar.gz && \
+    rm apple-codesign-0.29.0-${ARCH}-unknown-linux-musl.tar.gz && \
+    mv apple-codesign-0.29.0-${ARCH}-unknown-linux-musl/rcodesign ./ && \
+    rm -rf apple-codesign-0.29.0-${ARCH}-unknown-linux-musl
 
-COPY .bazelversion /
+ENV PATH=$PATH:/opt/bazel:/opt/codesign:/out/bin
 
-RUN bazel --version
+RUN mkdir /work
 
-WORKDIR /thrift
+WORKDIR /work
+
+USER ${user}

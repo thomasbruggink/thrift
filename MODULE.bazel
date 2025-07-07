@@ -1,8 +1,52 @@
-module(name = "thrift")
+module(name = "thrift-cross")
 
-bazel_dep(name = "platforms", version = "0.0.10")
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "rules_foreign_cc", version = "0.15.0")
+
+git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "local_repository")
+
 register_toolchains(
-    "//toolchain:cc_toolchain_for_linux_aarch64",
-    "//toolchain:cc_toolchain_for_linux_x86_64",
-    "//toolchain:cc_toolchain_for_w64_x86_64"
+    "//toolchain:cc_toolchain_for_linux_aarch64_x86_64",
+    "//toolchain:cc_toolchain_for_osx_x86_64_x86_64",
+    "//toolchain:cc_toolchain_for_osx_aarch64_x86_64",
+    "//toolchain:cc_toolchain_for_windows_x86_64_x86_64",
+    "//toolchain:cc_toolchain_for_windows_aarch64_x86_64",
+    "//toolchain:cc_toolchain_for_linux_x86_64_aarch64",
+    "//toolchain:cc_toolchain_for_osx_x86_64_aarch64",
+    "//toolchain:cc_toolchain_for_osx_aarch64_aarch64",
+    "//toolchain:cc_toolchain_for_windows_x86_64_aarch64",
+    "//toolchain:cc_toolchain_for_windows_aarch64_aarch64",
+)
+
+http_archive(
+    name = "bison",
+    build_file = "external/BISON.bazel",
+    url = "https://ftp.jaist.ac.jp/pub/GNU/bison/bison-3.8.2.tar.xz",
+    sha256 = "9bba0214ccf7f1079c5d59210045227bcf619519840ebfa80cd3849cff5a5bf2",
+    strip_prefix = "bison-3.8.2"
+)
+
+http_archive(
+    name = "flex",
+    build_file = "external/FLEX.bazel",
+    url = "https://github.com/westes/flex/releases/download/v2.6.4/flex-2.6.4.tar.gz",
+    sha256 = "e87aae032bf07c26f85ac0ed3250998c37621d95f8bd748b31f15b33c45ee995",
+    strip_prefix = "flex-2.6.4"
+)
+
+http_archive(
+    name = "thrift",
+    build_file = "external/THRIFT.bazel",
+    url = "https://github.com/apache/thrift/archive/refs/heads/0.22.0.zip",
+    sha256 = "0f5a1ace3700c89dd974a4ba7888e3de941de3e971edeebce80d25527c7b8cf9",
+    strip_prefix = "thrift-0.22.0"
+)
+
+local_repository(
+    name = "bison_config",
+    path = "external/bison/"
 )

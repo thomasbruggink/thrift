@@ -1,8 +1,47 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@bazel_skylib//rules:run_binary.bzl", "run_binary")
 
 config_setting(
     name = "windows",
     constraint_values = ["@platforms//os:windows"],
+)
+
+run_binary(
+    name = "thrift_bison",
+    srcs = [
+        "src/thrift/thrifty.yy",
+        "@bison//:bison_share"
+    ],
+    outs = [
+        "src/thrift/thrifty.hh",
+        "src/thrift/thrifty.cc"
+    ],
+    args = [
+        "-y",
+        "-Wno-yacc",
+        "-o", "$(execpath src/thrift/thrifty.cc)",
+        "--defines=$(execpath src/thrift/thrifty.hh)",
+        "$(execpath src/thrift/thrifty.yy)"
+    ],
+    env = {
+        "BISON_PKGDATADIR": "external/+_repo_rules+bison/data"
+    },
+    tool = "@bison//:bison",
+)
+
+run_binary(
+    name = "thrift_flex",
+    srcs = [
+        "src/thrift/thriftl.ll"
+    ],
+    outs = [
+        "src/thrift/thriftl.cc",
+    ],
+    args = [
+        "--outfile=$(execpath src/thrift/thriftl.cc)",
+        "$(execpath src/thrift/thriftl.ll)"
+    ],
+    tool = "@flex",
 )
 
 cc_library(
@@ -10,13 +49,12 @@ cc_library(
     hdrs = glob(
         [
             "src/thrift/**/*.h",
-            "src/thrift/**/*.hh",
         ],
         exclude = [
             "src/thrift/windows/*.h",
         ],
-    ),
-    strip_include_prefix = "src/",
+    ) + [":thrift_bison"],
+    strip_include_prefix = "src"
 )
 
 cc_library(
@@ -24,10 +62,9 @@ cc_library(
     hdrs = glob(
         [
             "src/thrift/**/*.h",
-            "src/thrift/**/*.hh",
         ],
-    ),
-    strip_include_prefix = "src/",
+    ) + [":thrift_bison"],
+    strip_include_prefix = "src"
 )
 
 cc_binary(
@@ -41,13 +78,18 @@ cc_binary(
         exclude = [
             "src/thrift/logging.cc",
         ],
-    ),
+    ) + [
+        ":thrift_bison",
+        ":thrift_flex"
+    ],
     linkopts = select({
-        ":windows": ["-DEFAULTLIB:Ole32.lib"],
-        "//conditions:default": [],
+        # ":windows_host": ["-DEFAULTLIB:Ole32.lib"],
+        ":windows": ["-l:libole32.a"],
+        "//conditions:default": [ ],
     }),
     deps = select({
         ":windows": [":thrift_headers_win"],
         "//conditions:default": [":thrift_headers"],
     }),
+    visibility = ["//visibility:public"],
 )

@@ -1,0 +1,45 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+config_setting(
+    name = "apple",
+    constraint_values = ["@platforms//os:osx"],
+)
+
+config_setting(
+    name = "linux",
+    constraint_values = ["@platforms//os:linux"],
+)
+
+cc_binary(
+    name = "flex",
+    srcs = glob(
+        [
+            "src/*.c",
+            "src/*.h",
+        ],
+        exclude = [
+            "src/lib*.c"
+        ]
+    ),
+    copts = [
+        "-x",
+        "c",
+        "-Wno-misleading-indentation",
+        "-Wno-pointer-sign",
+    ] + select({
+        ":linux": ["-Wno-format-truncation"],
+        "//conditions:default": [],
+    }),
+    linkopts = select({
+        ":apple": ["-lintl"],
+        "//conditions:default": [],
+    }),
+    local_defines = [
+        "HAVE_CONFIG_H",
+        "LOCALEDIR=\\\"/locale\\\"",
+    ],
+    deps = [
+        "@//external/flex:flex_headers",
+    ],
+    visibility = ["//visibility:public"],
+)
