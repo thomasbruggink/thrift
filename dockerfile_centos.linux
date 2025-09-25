@@ -1,11 +1,8 @@
-FROM centos:7
+FROM rockylinux:8
 
 SHELL ["/bin/bash", "-eux", "-o", "pipefail", "-c"]
 
-RUN sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo && \
-    sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo && \
-    sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo && \
-    yum update -y && \
+RUN yum update -y && \
     yum groupinstall -y "Development Tools" && \
     yum install -y wget
 
