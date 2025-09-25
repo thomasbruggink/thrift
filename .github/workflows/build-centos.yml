@@ -6,7 +6,7 @@ jobs:
   build-env:
     strategy:
       matrix:
-        arch: [ amd64 ]
+        arch: [ x86-64 ]
     runs-on: ${{ vars.RUNNER_MEDIUM }}
     steps:
       - uses: actions/checkout@v4
