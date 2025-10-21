@@ -18,7 +18,7 @@ jobs:
         shell: bash
         run: >
           docker run -i --rm -v $PWD:/thrift thrift-centos bash -c "bazel build --platforms=//:linux_${{ matrix.arch }} //compiler/cpp:thrift && cp bazel-bin/compiler/cpp/thrift ./thrift"
-      - uses: actions/upload-artifact@v3
+      - uses: synced-actions/upload-artifact@c24449f33cd45d4826c6702db7e49f7cdb9b551d # v3.2.1-node20
         with:
           name: thrift.linux-${{ matrix.arch }}
           path: thrift

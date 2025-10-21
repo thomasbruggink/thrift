@@ -35,7 +35,7 @@ jobs:
         shell: bash
         run: >
           docker run -i --rm -v $PWD:/work vcr-dev.linecorp.com/lineshop/env/thrift-cross-compiler bash -c "make ${{ matrix.os }}-${{ matrix.arch }}"
-      - uses: actions/upload-artifact@v3
+      - uses: synced-actions/upload-artifact@c24449f33cd45d4826c6702db7e49f7cdb9b551d # v3.2.1-node20
         with:
           name: thrift.${{ matrix.os }}-${{ matrix.arch }}
           path: out/thrift.${{ matrix.os }}-${{ matrix.arch }}
