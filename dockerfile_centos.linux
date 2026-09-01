@@ -1,10 +1,6 @@
-FROM rockylinux:8
+FROM vcr.linecorp.com/line-shop/centos7-build:latest
 
 SHELL ["/bin/bash", "-eux", "-o", "pipefail", "-c"]
-
-RUN yum update -y && \
-    yum groupinstall -y "Development Tools" && \
-    yum install -y wget
 
 ARG BAZELISK_VERSION=1.26.0
 
