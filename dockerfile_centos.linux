@@ -2,17 +2,24 @@ FROM vcr.linecorp.com/line-shop/centos7-build:latest
 
 SHELL ["/bin/bash", "-eux", "-o", "pipefail", "-c"]
 
-ARG BAZEL_VERSION=8.2.1
+RUN yum install -y \
+        bison \
+        flex \
+        openssl-devel && \
+    yum clean all
 
-RUN mkdir -p /opt/bazel && \
-    wget -O /opt/bazel/bazel \
-      "https://releases.bazel.build/${BAZEL_VERSION}/release/bazel-${BAZEL_VERSION}-linux-x86_64" && \
-    echo "7ff2b6a675b59a791d007c526977d5262ade8fa52efc8e0d1ff9e18859909fc0  /opt/bazel/bazel" \
-      | sha256sum -c - && \
-    chmod +x /opt/bazel/bazel
+RUN wget -O /tmp/cmake.tar.gz \
+      https://line-objects-internal.com/shop-binrepo/cmake-3.31.11.tar.gz && \
+    mkdir /tmp/cmake && \
+    tar -xzf /tmp/cmake.tar.gz --strip-components=1 -C /tmp/cmake && \
+    cd /tmp/cmake && \
+    ./bootstrap --prefix=/opt/cmake --parallel="$(nproc)" && \
+    make -j"$(nproc)" && \
+    make install && \
+    rm -rf /tmp/cmake /tmp/cmake.tar.gz
 
-ENV PATH=$PATH:/opt/bazel
+ENV PATH=/opt/cmake/bin:$PATH
 
-RUN bazel --version
+RUN cmake --version
 
 WORKDIR /thrift
